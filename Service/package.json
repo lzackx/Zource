@@ -1,0 +1,26 @@
+{
+    "name": "zource-server",
+    "version": "1.0.0",
+    "description": "zource server",
+    "main": "app.js",
+    "dependencies": {
+        "fs-promise": "^2.0.3",
+        "koa": "^2.5.1",
+        "koa-body": "^2.5.0",
+        "koa-logger": "^3.2.0",
+        "koa-router": "^7.4.0",
+        "mongoose": "^6.3.8",
+        "rimraf": "^2.6.2"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "test": "test",
+        "start": "node app.js"
+    },
+    "keywords": [
+        "zource",
+        "server"
+    ],
+    "author": "lZackx",
+    "license": "MIT"
+}
