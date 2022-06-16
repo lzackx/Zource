@@ -1,6 +1,10 @@
 require "cocoapods"
 require "cocoapods-zource/configuration/configuration"
 
+$ZOURCE_DEFAULT_SOURCE_PODS = [] # source as default in command environment
+$ZOURCE_PRIVACY_SOURCE_PODS = [] # source as privacy
+$ZOURCE_COCOAPODS_SOURCE_PODS = [] # source as cocoapods
+
 module CocoapodsZource
   class Podfile
     include Pod
@@ -56,15 +60,15 @@ module CocoapodsZource
             next if local_target.name == "Pods"
 
             target_definition_list.each do |target|
-              unless target.name == local_target.name &&
-                     (local_target.to_hash["dependencies"] && local_target.to_hash["dependencies"].any?)
+              unless target.name == local_target.name #&&
+                    #  (local_target.to_hash["dependencies"] && local_target.to_hash["dependencies"].any?)
                 next
               end
 
               target.instance_exec do
                 # remove then set
 
-                local_dependencies = local_target.to_hash["dependencies"]
+                local_dependencies = local_target.to_hash["dependencies"] || Array.new
                 target_dependencies = target.to_hash["dependencies"]
 
                 # remove origin target dependency
@@ -85,16 +89,40 @@ module CocoapodsZource
                     break
                   end
                 end
-                # use source if using cocoapods-zource plugin
-                local_dependencies.each do |d|
-                  # UI.message "Zource Pod: #{d.to_yaml}"
-                  # if podfile.plugins.keys.include?("cocoapods-zource")
-                  #   podfile.set_use_source_pods(d.keys.first) if (d.is_a?(Hash) && d.keys.first)
-                  # end
-                end
+
+                final_dependencies = Array.new
                 # merge in dependencies
-                new_dependencies = target_dependencies + local_dependencies
-                set_hash_value(%w[dependencies].first, new_dependencies)
+                merged_dependencies = target_dependencies + local_dependencies
+                # set source if specified by global variables
+                merged_dependencies.each do |dependency|
+                  key = nil
+                  value = nil
+                  if dependency.is_a?(String)
+                    key = dependency
+                  elsif dependency.is_a?(Hash)
+                    key = dependency.keys.first
+                    value = dependency[key]
+                  end
+                  next if name.nil?
+                  # default, means not specify by plugin, could be :path, :git, :podspec, etc
+                  if $ZOURCE_DEFAULT_SOURCE_PODS.include?(key)
+                    final_dependencies << dependency
+                    next
+                  end
+
+                  source_hash = Hash.new
+                  if $ZOURCE_PRIVACY_SOURCE_PODS.include?(key)
+                    source_hash[:source] = privacy_source
+                  elsif $ZOURCE_COCOAPODS_SOURCE_PODS.include?(key)
+                    source_hash[:source] = "https://github.com/CocoaPods/Specs.git"
+                  else
+                    source_hash[:source] = binary_source
+                  end
+                  final_value = Array[source_hash]
+                  final_dependency = Hash[key => final_value]
+                  final_dependencies << final_dependency
+                end
+                set_hash_value(%w[dependencies].first, final_dependencies)
               end
             end
           end
