@@ -46,24 +46,20 @@ module CocoapodsZource
           set_hash_value("sources", hash_sources.uniq)
 
           # podfile plugins
-          if zource_podfile.plugins.any?
-            hash_plugins = podfile.plugins || {}
-            hash_plugins = hash_plugins.merge(zource_podfile.plugins)
-            set_hash_value(%w[plugins].first, hash_plugins)
-
+          # if zource_podfile.plugins.any?
+          #   hash_plugins = podfile.plugins || {}
+          #   hash_plugins = hash_plugins.merge(zource_podfile.plugins)
+          #   set_hash_value(%w[plugins].first, hash_plugins)
             # source code white list
             # podfile.set_use_source_pods(zource_podfile.use_source_pods) if zource_podfile.use_source_pods
             # podfile.use_binaries!(zource_podfile.use_binaries?)
-          end
+          # end
 
           zource_podfile&.target_definition_list&.each do |local_target|
             next if local_target.name == "Pods"
 
             target_definition_list.each do |target|
-              unless target.name == local_target.name #&&
-                    #  (local_target.to_hash["dependencies"] && local_target.to_hash["dependencies"].any?)
-                next
-              end
+              next unless target.name == local_target.name
 
               target.instance_exec do
                 # remove then set
