@@ -20,13 +20,13 @@ module CocoapodsZource
 
     def template_hash
       {
-        "environment" => { description: "Environment for building", default: "Development" },
+        # "environment" => { description: "Environment for building", default: "Development" },
         "repo_privacy_name" => { description: "Privacy cocoapods repo name", default: "" },
         "repo_privacy_url" => { description: "Privacy cocoapods repo url", default: "" },
         "repo_binary_name" => { description: "Binary cocoapods repo name", default: "" },
         "repo_binary_url" => { description: "Binary cocoapods repo url", default: "" },
-        "binary_url" => { description: "URL of binary，%s is for name and version ", default: "http://localhost:10080" },
-        "binary_file_type" => { description: "Binary file type from server to download", default: "zip" },
+        "binary_url" => { description: "URL of binary", default: "http://localhost:9687" },
+        # "binary_file_type" => { description: "Binary file type from server to download", default: ".zip" },
       }
     end
 
@@ -56,9 +56,9 @@ module CocoapodsZource
 
     def configuration_file_with_environment(environment)
       file = "zource.yml"
-      if !@environment.nil? && !@environment.empty?
-        file = "zource" + ".#{@environment}" + ".yml"
-      end
+      # if !environment.nil? && !environment.empty?
+      #   file = "zource" + ".#{environment}" + ".yml"
+      # end
       project_root = Pod::Config.instance.project_root
       File.expand_path("#{project_root}/#{file}")
     end
@@ -73,7 +73,7 @@ module CocoapodsZource
 
     def sync_configuration(configuration)
       @configuration = configuration
-      File.open(configuration_file_with_environment(configuration["environment"]), "w+") do |f|
+      File.open(configuration_file_with_environment(@configuration["environment"]), "w+") do |f|
         f.write(configuration.to_yaml)
       end
     end
