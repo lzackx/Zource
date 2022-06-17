@@ -58,6 +58,11 @@ $ZOURCE_PRIVACY_SOURCE_PODS = [
 
 ]
 
+# source as binary
+$ZOURCE_BINARY_SOURCE_PODS = [
+
+] 
+
 # source as cocoapods
 $ZOURCE_COCOAPODS_SOURCE_PODS = [
 
@@ -66,6 +71,7 @@ $ZOURCE_COCOAPODS_SOURCE_PODS = [
 #pre_install do |installer|
 #end
 
+# implement target to use this file
 #target '' do
 #end
 

@@ -3,6 +3,7 @@ require "cocoapods-zource/configuration/configuration"
 
 $ZOURCE_DEFAULT_SOURCE_PODS = [] # source as default in command environment
 $ZOURCE_PRIVACY_SOURCE_PODS = [] # source as privacy
+$ZOURCE_BINARY_SOURCE_PODS = [] # source as binary
 $ZOURCE_COCOAPODS_SOURCE_PODS = [] # source as cocoapods
 
 module CocoapodsZource
@@ -50,9 +51,9 @@ module CocoapodsZource
           #   hash_plugins = podfile.plugins || {}
           #   hash_plugins = hash_plugins.merge(zource_podfile.plugins)
           #   set_hash_value(%w[plugins].first, hash_plugins)
-            # source code white list
-            # podfile.set_use_source_pods(zource_podfile.use_source_pods) if zource_podfile.use_source_pods
-            # podfile.use_binaries!(zource_podfile.use_binaries?)
+          # source code white list
+          # podfile.set_use_source_pods(zource_podfile.use_source_pods) if zource_podfile.use_source_pods
+          # podfile.use_binaries!(zource_podfile.use_binaries?)
           # end
 
           zource_podfile&.target_definition_list&.each do |local_target|
@@ -109,14 +110,27 @@ module CocoapodsZource
                   source_hash = Hash.new
                   if $ZOURCE_PRIVACY_SOURCE_PODS.include?(key)
                     source_hash[:source] = privacy_source
+                  elsif $ZOURCE_BINARY_SOURCE_PODS.include?(key)
+                    source_hash[:source] = binary_source
                   elsif $ZOURCE_COCOAPODS_SOURCE_PODS.include?(key)
                     source_hash[:source] = "https://github.com/CocoaPods/Specs.git"
-                  else
-                    source_hash[:source] = binary_source
                   end
-                  final_value = Array[source_hash]
-                  final_dependency = Hash[key => final_value]
-                  final_dependencies << final_dependency
+                  if source_hash.keys.empty?
+                    final_dependencies << dependency
+                  else
+                    final_value = value || Array.new
+                    final_value = final_value.reject {
+                      |v|
+                      should_reject = false
+                      if v.keys.include?(:git) || v.keys.include?(:path)
+                        should_reject = true
+                      end
+                      should_reject
+                    }
+                    final_value << source_hash
+                    final_dependency = Hash[key => final_value]
+                    final_dependencies << final_dependency
+                  end
                 end
                 set_hash_value(%w[dependencies].first, final_dependencies)
               end
