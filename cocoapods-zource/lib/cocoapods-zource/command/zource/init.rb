@@ -48,16 +48,26 @@ module Pod
             template = <<-EOF
 # use zource.podfile to setup Podfile
 
-$ZOURCE_DEFAULT_SOURCE_PODS = [] # source as default in command environment
-$ZOURCE_PRIVACY_SOURCE_PODS = [] # source as privacy
-$ZOURCE_COCOAPODS_SOURCE_PODS = [] # source as cocoapods
+# source as default in command environment
+$ZOURCE_DEFAULT_SOURCE_PODS = [
+
+] 
+
+# source as privacy
+$ZOURCE_PRIVACY_SOURCE_PODS = [
+
+]
+
+# source as cocoapods
+$ZOURCE_COCOAPODS_SOURCE_PODS = [
+
+] 
 
 #pre_install do |installer|
 #end
 
-target '' do
-  
-end
+#target '' do
+#end
 
 #post_install do |installer|
 #end

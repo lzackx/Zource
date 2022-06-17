@@ -44,7 +44,7 @@ Temporary Items
 *.icloud
 
 ### Ruby ###
-*.gem
+# *.gem
 *.rbc
 /.config
 /coverage/

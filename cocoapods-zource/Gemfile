@@ -5,7 +5,7 @@ gemspec
 
 group :development do
 
-  gem 'cocoapods', :path => './CocoaPods'
+  gem 'cocoapods'#, :path => './CocoaPods'
   gem 'xcodeproj'
 
   gem 'mocha'
