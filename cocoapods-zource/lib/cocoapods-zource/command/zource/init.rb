@@ -34,9 +34,38 @@ module Pod
           else
             configure_with_url(@url)
           end
+          touch_zource_podfile_if_needed
         end
 
         private
+
+        def touch_zource_podfile_if_needed
+          zource_podfile_path = File.join(Dir.pwd, "zource.podfile")
+          if File.exist?(zource_podfile_path)
+            return
+          end
+          File.open(zource_podfile_path, "w+") do |f|
+            template = <<-EOF
+# use zource.podfile to setup Podfile
+
+$ZOURCE_DEFAULT_SOURCE_PODS = [] # source as default in command environment
+$ZOURCE_PRIVACY_SOURCE_PODS = [] # source as privacy
+$ZOURCE_COCOAPODS_SOURCE_PODS = [] # source as cocoapods
+
+#pre_install do |installer|
+#end
+
+target '' do
+  
+end
+
+#post_install do |installer|
+#end
+            EOF
+            f.write(template)
+          end
+          print "\n created zource.podfile at: #{zource_podfile_path}"
+        end
 
         def configure_with_url(url)
           require "open-uri"
