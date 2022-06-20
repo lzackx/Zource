@@ -1,12 +1,6 @@
 PATH
   remote: .
   specs:
-    cocoapods-zource (1.0.0)
-      cocoapods
-
-PATH
-  remote: CocoaPods
-  specs:
     cocoapods (1.11.3)
       addressable (~> 2.8)
       claide (>= 1.0.2, < 2.0)
@@ -25,6 +19,8 @@ PATH
       nap (~> 1.0)
       ruby-macho (>= 1.0, < 3.0)
       xcodeproj (>= 1.21.0, < 2.0)
+    cocoapods-zource (1.0.0)
+      cocoapods
 
 GEM
   remote: https://rubygems.org/
@@ -80,7 +76,7 @@ GEM
     i18n (1.10.0)
       concurrent-ruby (~> 1.0)
     json (2.6.2)
-    minitest (5.15.0)
+    minitest (5.16.0)
     mocha (1.14.0)
     mocha-on-bacon (0.2.3)
       mocha (>= 0.13.0)
@@ -107,7 +103,7 @@ GEM
       colored2 (~> 3.1)
       nanaimo (~> 0.3.0)
       rexml (~> 3.2.4)
-    zeitwerk (2.5.4)
+    zeitwerk (2.6.0)
 
 PLATFORMS
   ruby
@@ -115,7 +111,7 @@ PLATFORMS
 DEPENDENCIES
   bacon
   bundler
-  cocoapods!
+  cocoapods
   cocoapods-zource!
   debase
   mocha
