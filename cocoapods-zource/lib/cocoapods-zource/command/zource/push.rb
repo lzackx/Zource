@@ -60,7 +60,8 @@ module Pod
           @project_path = Pod::Config.instance.project_root
           @pods_path = Pod::Config.instance.project_pods_root
           @configuration = CocoapodsZource::Configuration::configuration.configuration
-          @target_pods = JSON.parse(open(File.join(@pods_path, "zource.make.pods.json")).read)
+          @zource_path = File.join(@project_path, ".zource")
+          @target_pods = JSON.parse(open(File.join(@zource_path, "zource.make.pods.json")).read)
         end
 
         def validate!
@@ -77,6 +78,7 @@ module Pod
         def upload_pods
           @target_pods.each {
             |key, value|
+            next if value["product"].nil?
             zip_file_path = File.join(value["zource"], "#{key}.zip")
             command = "curl #{CocoapodsZource::Configuration::configuration.binary_upload_url} -F 'name=#{key}' -F 'version=#{value["version"]}' -F 'checksum=#{value["checksum"]}' -F 'file=@#{zip_file_path}'"
             done = system command
@@ -89,7 +91,10 @@ module Pod
           repo = @configuration.repo_binary_name
           @target_pods.each {
             |key, value|
-            podspec_path = File.join(value["zource"], "#{key}.podspec.json")
+            podspec_path = value["podspec"]
+            if !value["zource"].nil?
+              podspec_path = File.join(value["zource"], "#{key}.podspec.json")
+            end
             argvs = [
               repo,
               podspec_path,

@@ -1,5 +1,7 @@
 require "cocoapods"
 require "cocoapods-zource/configuration/configuration"
+require "uri"
+require "net/http"
 
 $ZOURCE_DEFAULT_SOURCE_PODS = [] # source as default in command environment
 $ZOURCE_PRIVACY_SOURCE_PODS = [] # source as privacy
@@ -100,37 +102,80 @@ module CocoapodsZource
                     key = dependency.keys.first
                     value = dependency[key]
                   end
-                  next if name.nil?
-                  # default, means not specify by plugin, could be :path, :git, :podspec, etc
-                  if $ZOURCE_DEFAULT_SOURCE_PODS.include?(key)
-                    final_dependencies << dependency
-                    next
+                  if key.include?("/")
+                    key = key.split("/").first
                   end
+                  next if name.nil?
+                  # if there is dependency in binary source
+                  # uri = URI("#{CocoapodsZource::Configuration::configuration.binary_upload_url}/#{key}")
+                  # response = Net::HTTP.get_response(uri)
+                  # if !response.is_a?(Net::HTTPSuccess)
+                  #   abort("request failure: #{uri}")
+                  # end
+                  # if JSON.parse(response.body).keys.count <= 0
+                  #   final_dependencies << dependency
+                  #   next
+                  # end
 
                   source_hash = Hash.new
-                  if $ZOURCE_PRIVACY_SOURCE_PODS.include?(key)
-                    source_hash[:source] = privacy_source
-                  elsif $ZOURCE_BINARY_SOURCE_PODS.include?(key)
-                    source_hash[:source] = binary_source
-                  elsif $ZOURCE_COCOAPODS_SOURCE_PODS.include?(key)
-                    source_hash[:source] = "https://github.com/CocoaPods/Specs.git"
-                  end
-                  if source_hash.keys.empty?
+                  if $ZOURCE_DEFAULT_SOURCE_PODS.include?(key)
+                    # ZOURCE_DEFAULT_SOURCE_PODS
+                    # do nothing
                     final_dependencies << dependency
+                    next
+                  elsif $ZOURCE_PRIVACY_SOURCE_PODS.include?(key)
+                    # ZOURCE_PRIVACY_SOURCE_PODS
+                    source_hash[:source] = privacy_source
+                  elsif $ZOURCE_COCOAPODS_SOURCE_PODS.include?(key)
+                    # ZOURCE_COCOAPODS_SOURCE_PODS
+                    source_hash[:source] = "https://github.com/CocoaPods/Specs.git"
+                  elsif $ZOURCE_BINARY_SOURCE_PODS.include?(key)
+                    # ZOURCE_BINARY_SOURCE_PODS
+                    source_hash[:source] = binary_source
                   else
-                    final_value = value || Array.new
-                    final_value = final_value.reject {
-                      |v|
-                      should_reject = false
-                      if v.keys.include?(:git) || v.keys.include?(:path)
+                    source_hash[:source] = binary_source # default to binary_source
+                  end
+
+                  final_value = value || Array.new
+                  # add source if needed
+                  if !source_hash[:source].nil?
+                    final_value << source_hash
+                  end
+
+                  final_value = final_value.reject {
+                    |v|
+                    should_reject = false
+                    if v.is_a?(Hash)
+                      if v.keys.include?(:git) || v.keys.include?(:path) || v.keys.include?(:podspec)
                         should_reject = true
                       end
-                      should_reject
-                    }
-                    final_value << source_hash
-                    final_dependency = Hash[key => final_value]
-                    final_dependencies << final_dependency
-                  end
+                    end
+                    should_reject
+                  }
+
+                  # finally, add to final_dependencies
+                  final_dependency = Hash[key => final_value]
+                  final_dependencies << final_dependency
+
+                  # if source_hash.keys.empty?
+                  #   final_dependencies << dependency
+                  # else
+                  #   final_value = value || Array.new
+                  #   # final_value = final_value.reject {
+                  #   #   |v|
+                  #   #   should_reject = false
+                  #   #   if v.is_a?(Hash)
+                  #   #     if v.keys.include?(:git) || v.keys.include?(:path) || v.keys.include?(:podspec)
+                  #   #       should_reject = true
+                  #   #     end
+                  #   #   end
+                  #   #   should_reject
+                  #   # }
+                  #   final_value << source_hash
+                  #   final_dependency = Hash[key => final_value]
+                  #   final_dependencies << final_dependency
+                  # end
+
                 end
                 set_hash_value(%w[dependencies].first, final_dependencies)
               end
@@ -274,6 +319,10 @@ module CocoapodsZource
 
     def self.subspec_of_pod_value(pod_value)
       pod_value[:subspec]
+    end
+
+    def self.product_path_of_pod_value(pod_value)
+      pod_value[:product]
     end
 
     def self.path_of_pod_value(pod_value)

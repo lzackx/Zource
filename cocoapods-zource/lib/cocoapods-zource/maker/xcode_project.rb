@@ -8,13 +8,13 @@ module CocoapodsZource
       super
       @project_path = Pod::Config.instance.project_root
       @pods_path = Pod::Config.instance.project_pods_root
-      @pod_project_path = File.join(@pods_path, "Pods.xcodeproj")
-      @pod_project = Xcodeproj::Project.open(@pod_project_path)
+      @pods_project_path = File.join(@pods_path, "Pods.xcodeproj")
+      @pods_project = Xcodeproj::Project.open(@pods_project_path)
       @configuration = CocoapodsZource::Configuration.configuration
     end
 
     def set_xcode_project
-      @pod_project.targets.each {
+      @pods_project.targets.each {
         |target|
         next if defined?(target.source_build_phase).nil?
         macho_type = "staticlib"
@@ -45,7 +45,11 @@ module CocoapodsZource
         }
         print "#{target.name}: [MACH_O_TYPE => #{macho_type}]\n"
       }
-      @pod_project.save
+      @pods_project.save
+    end
+
+    def pods_project
+      @pods_project
     end
   end
 end
