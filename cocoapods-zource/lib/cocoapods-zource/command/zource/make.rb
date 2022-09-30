@@ -34,7 +34,9 @@ module Pod
         def run
           UI.message "\nStart Making ...\n".green
           general_update
-          make_xcframeworks
+          CocoapodsZource::Maker.backup_project
+          CocoapodsZource::Maker.make_zource_directory
+          make_pods
         end
 
         def general_update
@@ -47,14 +49,11 @@ module Pod
           gen.run
         end
 
-        def make_xcframeworks
+        def make_pods
           UI.message "\nmaking pods ...\n".green
           maker = CocoapodsZource::Maker.new(@configuration)
-          maker.backup_project
-          maker.build_frameworks
-          maker.create_xcframeworks
-          maker.make_podspecs
-          maker.zip_pods
+          maker.setup_zource_pods!
+          maker.make_zource_pods
           UI.message "\nDone\n".green
         end
       end

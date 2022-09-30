@@ -61,7 +61,7 @@ module Pod
           @pods_path = Pod::Config.instance.project_pods_root
           @configuration = CocoapodsZource::Configuration::configuration.configuration
           @zource_path = File.join(@project_path, ".zource")
-          @target_pods = JSON.parse(open(File.join(@zource_path, "zource.make.pods.json")).read)
+          @target_pods = JSON.parse(open(File.join(@zource_path, "zource.pods.json")).read, true)
         end
 
         def validate!

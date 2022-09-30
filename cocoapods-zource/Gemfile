@@ -1,18 +1,33 @@
-source 'https://rubygems.org'
+SKIP_UNRELEASED_VERSIONS = false
+
+# Declares a dependency to the git repo of CocoaPods gem. This declaration is
+# compatible with the local git repos feature of Bundler.
+#
+def cp_gem(name, repo_name, branch = "master", path: true)
+  return gem name if SKIP_UNRELEASED_VERSIONS
+  opts = if path
+      { :path => "./CocoaPods/#{repo_name}" }
+    else
+      puts "==================="
+      url = "https://github.com/CocoaPods/#{repo_name}.git"
+      { :git => url, :branch => branch }
+    end
+  gem name, opts
+end
+
+source "https://rubygems.org"
 
 # Specify your gem's dependencies in cocoapods-zource.gemspec
 gemspec
 
 group :development do
+  cp_gem "cocoapods", "CocoaPods"
+  cp_gem "xcodeproj", "Xcodeproj"
 
-  gem 'cocoapods'#, :path => './CocoaPods'
-  gem 'xcodeproj'
-
-  gem 'mocha'
-  gem 'bacon'
-  gem 'mocha-on-bacon'
-  gem 'prettybacon'
-
-  gem 'ruby-debug-ide'     
-  gem 'debase'
+  gem "mocha"
+  gem "bacon"
+  gem "mocha-on-bacon"
+  gem "prettybacon"
+  gem "ruby-debug-ide"
+  gem "debase"
 end
