@@ -1,5 +1,5 @@
 require "cocoapods"
-require "cocoapods-zource/maker/maker"
+require "cocoapods-zource/pod/maker"
 
 module Pod
   class Command

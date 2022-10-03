@@ -2,11 +2,11 @@ require "cocoapods"
 require "xcodeproj"
 require "json"
 
-require "cocoapods-zource/maker/project_generator.rb"
-require "cocoapods-zource/maker/project_constructor.rb"
-require "cocoapods-zource/maker/xcframework_combinator.rb"
-require "cocoapods-zource/maker/binary_compressor.rb"
-require "cocoapods-zource/maker/binary_pod_publisher.rb"
+require "cocoapods-zource/pod/project_generator.rb"
+require "cocoapods-zource/pod/project_constructor.rb"
+require "cocoapods-zource/pod/xcframework_combinator.rb"
+require "cocoapods-zource/pod/binary_compressor.rb"
+require "cocoapods-zource/pod/binary_pod_publisher.rb"
 
 module CocoapodsZource
   class ZourcePod

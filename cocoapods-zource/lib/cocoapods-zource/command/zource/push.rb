@@ -1,6 +1,5 @@
 require "cocoapods"
-require "cocoapods-zource/command/zource/make"
-require "cocoapods-zource/configuration/configuration"
+require "cocoapods-zource/pod/uploader.rb"
 
 module Pod
   class Command
@@ -56,12 +55,6 @@ module Pod
           super
           @h = argv.flag?("help")
           @unhandled_args = argv.remainder!
-
-          @project_path = Pod::Config.instance.project_root
-          @pods_path = Pod::Config.instance.project_pods_root
-          @configuration = CocoapodsZource::Configuration::configuration.configuration
-          @zource_path = File.join(@project_path, ".zource")
-          @target_pods = JSON.parse(open(File.join(@zource_path, "zource.pods.json")).read, true)
         end
 
         def validate!
@@ -70,62 +63,8 @@ module Pod
         end
 
         def run
-          upload_pods
-          run_push
-        end
-
-        # curl http://host:port/frameworks -F "name=xxx" -F "version=xx.xx" -F "checksum=xxx" -F "file=path/to/pod.zip"
-        def upload_pods
-          @target_pods.each {
-            |key, value|
-            next if value["product"].nil?
-            zip_file_path = File.join(value["zource"], "#{key}.zip")
-            command = "curl #{CocoapodsZource::Configuration::configuration.binary_upload_url} -F 'name=#{key}' -F 'version=#{value["version"]}' -F 'checksum=#{value["checksum"]}' -F 'file=@#{zip_file_path}'"
-            done = system command
-            abort("upload failed: #{zip_file_path}") if !done
-          }
-        end
-
-        def run_push
-          source = "#{@configuration.repo_binary_url},#{@configuration.repo_privacy_url},https://github.com/CocoaPods/Specs.git,https://cdn.cocoapods.org/"
-          repo = @configuration.repo_binary_name
-          @target_pods.each {
-            |key, value|
-            podspec_path = value["podspec"]
-            if !value["zource"].nil?
-              podspec_path = File.join(value["zource"], "#{key}.podspec.json")
-            end
-            argvs = [
-              repo,
-              podspec_path,
-              *@unhandled_args,
-              "--allow-warnings",
-              "--use-libraries",
-              "--use-modular-headers",
-              "--sources=#{source}",
-              "--skip-import-validation",
-              "--skip-tests",
-              "--use-json",
-              "--verbose",
-            ]
-            UI.message "#{argvs}"
-            push = Pod::Command::Repo::Push.new(CLAide::ARGV.new(argvs))
-            push.validate!
-            push.instance_eval do
-              def run
-                open_editor if @commit_message && @message.nil?
-                check_if_push_allowed
-                update_sources if @update_sources
-                # validate_podspec_files
-                check_repo_status
-                update_repo
-                add_specs_to_repo
-                push_repo unless @local_only
-              end
-            end
-            push.run
-          }
-          UI.info "Pods pushed successfully".cyan
+          uploader = CocoapodsZource::Uploader.new
+          uploader.upload
         end
 
         # End

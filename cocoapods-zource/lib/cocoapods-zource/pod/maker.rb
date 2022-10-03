@@ -1,10 +1,7 @@
 require "cocoapods"
 require "xcodeproj"
-# require "cocoapods-zource/pod/podfile"
-# require "cocoapods-zource/pod/podspec"
-# require "cocoapods-zource/configuration/configuration"
 
-require "cocoapods-zource/maker/zource_pod.rb"
+require "cocoapods-zource/pod/zource_pod.rb"
 
 module CocoapodsZource
   class Maker
@@ -52,14 +49,14 @@ module CocoapodsZource
       Pod::Config.instance.instance_eval do
         def zource_root
           if @zource_root.nil?
-            @zource_root = Pathname.new(File.join(Pod::Config.instance.project_root, ".zource"))
+            @zource_root = Pod::Config.instance.project_root.join(".zource")
           end
           @zource_root
         end
 
         def zource_pods_json_path
           if @zource_pods_json_path.nil?
-            @zource_pods_json_path = Pathname.new(File.join(zource_root, "zource.pods.json"))
+            @zource_pods_json_path = zource_root.join("zource.pods.json")
           end
           @zource_pods_json_path
         end

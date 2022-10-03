@@ -1,4 +1,5 @@
 require "cocoapods"
+require "cocoapods-zource/configuration/configuration"
 
 module CocoapodsZource
   class ZourcePod
@@ -8,7 +9,7 @@ module CocoapodsZource
 
       def initialize(zource_pod)
         @zource_pod = zource_pod
-        @zip_file_path = File.join(@zource_pod.zip_path, "#{@zource_pod.binary_podspec.name}.zip")
+        @configuration = CocoapodsZource::Configuration::configuration.configuration
       end
 
       def publish
@@ -18,15 +19,21 @@ module CocoapodsZource
 
       # curl http://host:port/frameworks -F "name=xxx" -F "version=xx.xx" -F "checksum=xxx" -F "file=path/to/pod.zip"
       def upload
+        return if !@zource_pod.zip_path.exist?
         executable = "curl"
-        command = "#{CocoapodsZource::Configuration::configuration.binary_upload_url}"
-        command += "-F 'name=#{@zource_pod.binary_podspec.name}'"
-        command += "-F 'version=#{@zource_pod.binary_podspec.version}'"
-        command += "-F 'checksum=#{@zource_pod.binary_podspec.checksum}'"
-        command += "-F 'file=@#{@zip_file_path}'"
-        raise_on_failure = true
+        command = Array.new
+        command << "#{CocoapodsZource::Configuration::configuration.binary_upload_url}"
+        command << "-F"
+        command << "'name=#{@zource_pod.binary_podspec.name}'"
+        command << "-F"
+        command << "'version=#{@zource_pod.binary_podspec.version}'"
+        command << "-F"
+        command << "'checksum=#{@zource_pod.binary_podspec.checksum}'"
+        command << "-F"
+        command << "'file=\@#{@zource_pod.zip_path}'"
+        full_command = "#{executable} #{command.join(" ")}"
         begin
-          Pod.Executable.execute_command(executable, command, raise_on_failure)
+          system("#{full_command}")
         rescue Exception => e
           abort("Upload zip exception:\n#{e}")
         end
@@ -37,7 +44,7 @@ module CocoapodsZource
         repo = @configuration.repo_binary_name
         argvs = [
           repo,
-          @zource_pod.path,
+          @zource_pod.binary_podspec_path,
           *@unhandled_args,
           "--allow-warnings",
           "--use-libraries",
@@ -48,7 +55,20 @@ module CocoapodsZource
           "--use-json",
           "--verbose",
         ]
+
         push = Pod::Command::Repo::Push.new(CLAide::ARGV.new(argvs))
+        push.instance_eval do
+          def run
+            open_editor if @commit_message && @message.nil?
+            check_if_push_allowed
+            update_sources if @update_sources
+            # validate_podspec_files
+            check_repo_status
+            update_repo
+            add_specs_to_repo
+            push_repo unless @local_only
+          end
+        end
         push.validate!
         push.run
       end
