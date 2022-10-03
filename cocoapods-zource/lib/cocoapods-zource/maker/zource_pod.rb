@@ -5,6 +5,7 @@ require "json"
 require "cocoapods-zource/maker/project_generator.rb"
 require "cocoapods-zource/maker/project_constructor.rb"
 require "cocoapods-zource/maker/xcframework_combinator.rb"
+require "cocoapods-zource/maker/binary_compressor.rb"
 require "cocoapods-zource/maker/binary_pod_publisher.rb"
 
 module CocoapodsZource
@@ -22,8 +23,9 @@ module CocoapodsZource
     attr_reader :zource_path
     attr_reader :generated_project_path
     attr_reader :archived_path
-    attr_reader :zip_path
     attr_reader :zource_pod_binary_path
+    attr_reader :zource_pod_product_path
+    attr_reader :zip_path
     attr_reader :binary_podspec_path
     attr_reader :binary_podspec
     attr_reader :project_deployment_target
@@ -36,12 +38,15 @@ module CocoapodsZource
       else
       end
       @meta = meta
+      # Directory Path
       @zource_pod_path = Pod::Config.instance.zource_root.join(@podspec.name)
       @generated_project_path = @zource_pod_path.join("project")
       @archived_path = @zource_pod_path.join("archived")
-      @zip_path = @zource_pod_path.join("#{@podspec.name}.zip")
       @zource_pod_binary_path = @zource_pod_path.join("binary")
-      @binary_podspec_path = @zource_pod_binary_path.join("#{@podspec.name}.podspec.json")
+      @zource_pod_product_path = @zource_pod_path.join("product")
+      # File path
+      @zip_path = @zource_pod_product_path.join("#{@podspec.name}.zip")
+      @binary_podspec_path = @zource_pod_product_path.join("#{@podspec.name}.podspec.json")
       setup_path
     end
 
@@ -61,9 +66,10 @@ module CocoapodsZource
         zource_pod_path: @zource_pod_path,
         generated_project_path: @generated_project_path,
         archived_path: @archived_path,
+        zource_pod_binary_path: @zource_pod_binary_path,
+        zource_pod_product_path: @zource_pod_product_path,
         zip_path: @zip_path,
         binary_podspec_path: @binary_podspec_path,
-        zource_pod_binary_path: @zource_pod_binary_path,
       }
     end
 
@@ -97,6 +103,13 @@ module CocoapodsZource
       Pod::UI.section "==== Start combining #{@podspec.name} xcframework ====" do
         combinator = XCFrameworkCombinator.new(self)
         combinator.combine
+      end
+    end
+
+    def compress_binary
+      Pod::UI.section "==== Start compressing #{@podspec.name} binary ====" do
+        compressor = BinaryCompressor.new(self)
+        compressor.compress
       end
     end
 
@@ -187,6 +200,7 @@ module CocoapodsZource
       @generated_project_path.mkdir if !@generated_project_path.exist?
       @archived_path.mkdir if !@archived_path.exist?
       @zource_pod_binary_path.mkdir if !@zource_pod_binary_path.exist?
+      @zource_pod_product_path.mkdir if !@zource_pod_product_path.exist?
     end
 
     def clear_podspec_attributes(spec_hash)

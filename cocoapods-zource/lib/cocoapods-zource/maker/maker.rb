@@ -11,9 +11,21 @@ module CocoapodsZource
     include Pod
 
     attr_accessor :zource_pods
+    attr_reader :should_generate_project
+    attr_reader :should_construct_project
+    attr_reader :should_combine_xcframework
+    attr_reader :should_compress_binary
 
-    def initialize(configuration)
+    def initialize(configuration,
+                   should_generate_project = true,
+                   should_construct_project = true,
+                   should_combine_xcframework = true,
+                   should_compress_binary = true)
       @configuration = configuration
+      @should_generate_project = should_generate_project
+      @should_construct_project = should_construct_project
+      @should_combine_xcframework = should_combine_xcframework
+      @should_compress_binary = should_compress_binary
       @zource_pods = Hash.new
       @pods_xcodeproj = Xcodeproj::Project.open(Pod::Config.instance.project_pods_root.join("Pods.xcodeproj"))
     end
@@ -24,7 +36,10 @@ module CocoapodsZource
       project_path = Pod::Config.instance.project_root
       UI.message "Backup #{project_path} => #{project_path}.backup"
       executable = "cp"
-      command = "-rf #{project_path} #{project_path}.backup"
+      command = Array.new
+      command << "-rf"
+      command << "#{project_path}"
+      command << "#{project_path}.backup"
       raise_on_failure = true
       begin
         Pod::Executable.execute_command(executable, command, raise_on_failure)
@@ -71,9 +86,18 @@ module CocoapodsZource
           |zource_pod|
           zource_pod.save_binary_podspec
           if zource_pod.xcodeproject_target.class == Xcodeproj::Project::Object::PBXNativeTarget
-            zource_pod.generate_project
-            zource_pod.construct_project
-            zource_pod.combine_xcframework
+            if @should_generate_project
+              zource_pod.generate_project
+            end
+            if @should_construct_project
+              zource_pod.construct_project
+            end
+            if @should_combine_xcframework
+              zource_pod.combine_xcframework
+            end
+            if @should_compress_binary
+              zource_pod.compress_binary
+            end
           end
         }
       end
