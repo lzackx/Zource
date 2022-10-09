@@ -50,6 +50,7 @@ module Pod
           if @update_dependency
             general_update
           end
+          CocoapodsZource::Maker.setup_pod_config_environment
           if @backup
             CocoapodsZource::Maker.backup_project
           end

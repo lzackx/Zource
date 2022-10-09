@@ -41,10 +41,13 @@ module CocoapodsZource
         begin
 
           # add sources
-          privacy_source = CocoapodsZource::Configuration.configuration.configuration.repo_privacy_url
+          privacy_sources = CocoapodsZource::Configuration.configuration.repo_privacy_urls_array
           binary_source = CocoapodsZource::Configuration.configuration.configuration.repo_binary_url
           hash_sources = get_hash_value("sources") || []
-          hash_sources.unshift(privacy_source)
+          privacy_sources.each {
+            |source|
+            hash_sources << source
+          }
           hash_sources.unshift(binary_source)
           set_hash_value("sources", hash_sources.uniq)
 
@@ -125,7 +128,7 @@ module CocoapodsZource
                     next
                   elsif $ZOURCE_PRIVACY_SOURCE_PODS.include?(key)
                     # ZOURCE_PRIVACY_SOURCE_PODS
-                    source_hash[:source] = privacy_source
+                    source_hash[:source] = privacy_sources.first
                   elsif $ZOURCE_COCOAPODS_SOURCE_PODS.include?(key)
                     # ZOURCE_COCOAPODS_SOURCE_PODS
                     source_hash[:source] = "https://github.com/CocoaPods/Specs.git"

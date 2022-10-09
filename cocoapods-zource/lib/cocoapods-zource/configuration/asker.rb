@@ -18,6 +18,10 @@ module CocoapodsZource
           show_prompt
           answer = STDIN.gets.chomp.strip
 
+          if answer.include?(",")
+            answer = answer.split(",")
+          end
+
           if answer == "" && !last_answer.nil?
             answer = last_answer
             print answer.yellow

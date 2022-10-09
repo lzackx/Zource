@@ -70,13 +70,13 @@ module CocoapodsZource
                                        use_modular_headers = true,
                                        use_static_frameworks = true)
         urls = Array.new()
-        if !CocoapodsZource::Configuration::configuration.configuration.repo_privacy_url.nil?
-          urls << CocoapodsZource::Configuration::configuration.configuration.repo_privacy_url
+        if CocoapodsZource::Configuration::configuration.repo_privacy_urls_array.count > 0
+          urls = urls + CocoapodsZource::Configuration::configuration.repo_privacy_urls_array
         end
         urls << Pod::TrunkSource::TRUNK_REPO_URL
         zource_pod = @zource_pod
         platform_name = @consumer.platform_name
-        Pod::Podfile.new do
+        podfile = Pod::Podfile.new do
           install! "cocoapods",
                    :deterministic_uuids => false,
                    :warn_for_unused_master_specs_repo => false,
@@ -92,23 +92,13 @@ module CocoapodsZource
             end
             use_modular_headers! if use_modular_headers
             platform(platform_name, zource_pod.project_deployment_target)
+
             # pod
-            if !zource_pod.meta[:podspec].nil?
-              pod zource_pod.podspec.name,
-                  :podspec => "#{zource_pod.meta[:podspec]}",
-                  :inhibit_warnings => false
-            elsif !zource_pod.meta[:path].nil?
-              pod zource_pod.podspec.name,
-                  :path => "#{zource_pod.meta[:path]}",
-                  :inhibit_warnings => false
-            elsif !zource_pod.meta[:git].nil?
-              pod zource_pod.podspec.name,
-                  :git => "#{zource_pod.meta[:git]}",
-                  :branch => "#{zource_pod.meta[:version]}",
-                  :inhibit_warnings => false
-            else
-              pod zource_pod.podspec.name, :inhibit_warnings => false
-            end
+            zource_pod_condition = zource_pod.meta
+            zource_pod_condition.delete(:version)
+            zource_pod_condition.delete(:checksum)
+            zource_pod_condition[:inhibit_warnings] = false
+            pod(zource_pod.podspec.name, zource_pod_condition)
             # dependency pod
             zource_pods_hash = JSON.parse(Pod::Config.instance.zource_pods_json_path.read,
                                           { symbolize_names: true })
@@ -116,14 +106,12 @@ module CocoapodsZource
               |zource_pod_name, zource_pod_hash|
               next if zource_pod_name.to_s == zource_pod.podspec.name
               dependency_zource_pod = ZourcePod.from_hash(zource_pod_hash)
-              if !dependency_zource_pod.meta[:path].nil? # include
-                pod dependency_zource_pod.podspec.name,
-                    :path => "#{dependency_zource_pod.meta[:path]}",
-                    :inhibit_warnings => false
-              elsif !dependency_zource_pod.meta[:podspec].nil? # external
-                pod dependency_zource_pod.podspec.name,
-                    :podspec => "#{dependency_zource_pod.meta[:podspec]}",
-                    :inhibit_warnings => false
+              if dependency_zource_pod.meta.has_key?(:path) || dependency_zource_pod.meta.has_key?(:podspec)
+                dependency_zource_pod_condition = dependency_zource_pod.meta
+                dependency_zource_pod_condition.delete(:version)
+                dependency_zource_pod_condition.delete(:checksum)
+                dependency_zource_pod_condition[:inhibit_warnings] = false
+                pod(dependency_zource_pod.podspec.name, dependency_zource_pod_condition)
               end
             }
           end
@@ -143,6 +131,7 @@ module CocoapodsZource
             post_install_xcode14_pods_project_code_sign(installer)
           end
         end
+        podfile
       end
 
       def setup_environments

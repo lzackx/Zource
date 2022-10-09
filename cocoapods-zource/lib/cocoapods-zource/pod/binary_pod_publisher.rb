@@ -40,7 +40,7 @@ module CocoapodsZource
       end
 
       def push
-        source = "#{@configuration.repo_binary_url},#{@configuration.repo_privacy_url},https://github.com/CocoaPods/Specs.git,https://cdn.cocoapods.org/"
+        source = "#{@configuration.repo_binary_url},#{CocoapodsZource::Configuration::configuration.repo_privacy_urls_string},https://github.com/CocoaPods/Specs.git,https://cdn.cocoapods.org/"
         repo = @configuration.repo_binary_name
         argvs = [
           repo,

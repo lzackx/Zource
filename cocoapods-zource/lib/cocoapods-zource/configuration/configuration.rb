@@ -3,30 +3,33 @@ require "cocoapods"
 
 module CocoapodsZource
   class Configuration
+
+    # attr_accessor :environment
+    # attr_accessor :repo_privacy_urls
+    # attr_accessor :repo_binary_name
+    # attr_accessor :repo_binary_url
+    # attr_accessor :binary_url
+
     def self.configuration
       @@configuration ||= Configuration.new
     end
 
-    def initialize()
-      @environment = ""
-      @repo_privacy_name = ""
-      @repo_privacy_url = ""
-      @repo_binary_name = ""
-      @repo_binary_url = ""
-      @binary_url = ""
-      @binary_file_type = ""
-      super
-    end
+    # def initialize()
+    #   @environment = ""
+    #   @repo_privacy_urls = ""
+    #   @repo_binary_name = ""
+    #   @repo_binary_url = ""
+    #   @binary_url = ""
+    #   super
+    # end
 
     def template_hash
       {
         # "environment" => { description: "Environment for building", default: "Development" },
-        "repo_privacy_name" => { description: "Privacy cocoapods repo name", default: "" },
-        "repo_privacy_url" => { description: "Privacy cocoapods repo url", default: "" },
+        "repo_privacy_urls" => { description: "Privacy cocoapods repo url, divide with comma", default: "" },
         "repo_binary_name" => { description: "Binary cocoapods repo name", default: "" },
         "repo_binary_url" => { description: "Binary cocoapods repo url", default: "" },
         "binary_url" => { description: "URL of binary", default: "http://localhost:9687" },
-        # "binary_file_type" => { description: "Binary file type from server to download", default: ".zip" },
       }
     end
 
@@ -40,6 +43,28 @@ module CocoapodsZource
           @configuration = OpenStruct.new load_configuration
           @configuration
         end
+    end
+
+    def repo_privacy_urls_string
+      string = ""
+      if repo_privacy_urls.is_a?(String)
+        string = repo_privacy_urls
+      elsif repo_privacy_urls.is_a?(Array)
+        string = repo_privacy_urls.join(",")
+      else
+        string = repo_privacy_urls.to_s
+      end
+      string
+    end
+
+    def repo_privacy_urls_array
+      array = Array.new
+      if repo_privacy_urls.is_a?(Array)
+        array = repo_privacy_urls
+      else
+        array = repo_privacy_urls.split(",")
+      end
+      array
     end
 
     def load_configuration
@@ -59,8 +84,7 @@ module CocoapodsZource
       # if !environment.nil? && !environment.empty?
       #   file = "zource" + ".#{environment}" + ".yml"
       # end
-      project_root = Pod::Config.instance.project_root
-      File.expand_path("#{project_root}/#{file}")
+      Pod::Config.instance.project_root.join(file)
     end
 
     def binary_download_url(name, version)

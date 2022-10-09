@@ -62,7 +62,7 @@ module CocoapodsZource
       {
         podspec: @podspec.defined_in_file,
         meta: @meta,
-        xcodeproject_target: "#{@xcodeproject_target.name}(#{@xcodeproject_target.class})",
+        xcodeproject_target: "#{@xcodeproject_target&.name}(#{@xcodeproject_target&.class})",
         zource_pod_path: @zource_pod_path,
         generated_project_path: @generated_project_path,
         archived_path: @archived_path,
@@ -160,12 +160,7 @@ module CocoapodsZource
           # 4 order subspecs
           @binary_podspec&.subspecs.reverse!
           # 5. description
-          description = Hash.new
-          description[:version] = @meta[:version]
-          description[:checksum] = @meta[:checksum]
-          description[:git] = @meta[:git] if !@meta[:git].nil?
-          description[:source] = @meta[:source] if !@meta[:source].nil?
-          @binary_podspec&.description = JSON.pretty_generate(description)
+          @binary_podspec&.description = JSON.pretty_generate(@meta)
           # 6. source
           source = Hash.new
           source[:http] = CocoapodsZource::Configuration.configuration.binary_download_url(@binary_podspec.name, @meta[:version])

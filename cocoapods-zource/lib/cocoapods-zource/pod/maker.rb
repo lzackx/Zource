@@ -29,6 +29,24 @@ module CocoapodsZource
 
     public
 
+    def self.setup_pod_config_environment
+      Pod::Config.instance.instance_eval do
+        def zource_root
+          if @zource_root.nil?
+            @zource_root = Pod::Config.instance.project_root.join(".zource")
+          end
+          @zource_root
+        end
+
+        def zource_pods_json_path
+          if @zource_pods_json_path.nil?
+            @zource_pods_json_path = zource_root.join("zource.pods.json")
+          end
+          @zource_pods_json_path
+        end
+      end
+    end
+
     def self.backup_project
       project_path = Pod::Config.instance.project_root
       UI.message "Backup #{project_path} => #{project_path}.backup"
@@ -46,21 +64,6 @@ module CocoapodsZource
     end
 
     def self.make_zource_directory
-      Pod::Config.instance.instance_eval do
-        def zource_root
-          if @zource_root.nil?
-            @zource_root = Pod::Config.instance.project_root.join(".zource")
-          end
-          @zource_root
-        end
-
-        def zource_pods_json_path
-          if @zource_pods_json_path.nil?
-            @zource_pods_json_path = zource_root.join("zource.pods.json")
-          end
-          @zource_pods_json_path
-        end
-      end
       if Pod::Config.instance.zource_root.exist? && !Pod::Config.instance.zource_root.to_s.eql?("/")
         Pod::Config.instance.zource_root.rmtree
       end
@@ -131,23 +134,23 @@ module CocoapodsZource
         meta = Hash.new
         meta[:version] = lockfile.version(key).to_s
         meta[:checksum] = lockfile.checksum(key)
-        if !value[:path].nil?
-          path = Pathname.new(value[:path])
+        meta = meta.merge(value)
+        if meta.has_key?(:path)
+          path = Pathname.new(meta[:path])
           if path.absolute?
             meta[:path] = path
           else
             meta[:path] = Pod::Config.instance.project_root.join(path)
           end
         end
-        if !value[:podspec].nil?
-          podspec = Pathname.new(value[:podspec])
+        if meta.has_key?(:podspec)
+          podspec = Pathname.new(meta[:podspec])
           if podspec.absolute?
             meta[:podspec] = podspec
           else
             meta[:podspec] = Pod::Config.instance.project_root.join(podspec)
           end
         end
-        meta[:git] = value[:git] if !value[:git].nil?
         # Pod::Specification
         podspec_path = Pod::Config.instance.sandbox.specifications_root.join("#{key}.podspec.json")
         if !meta[:path].nil?
@@ -175,7 +178,7 @@ module CocoapodsZource
           meta = Hash.new
           meta[:version] = lockfile.version(pod_name).to_s
           meta[:checksum] = lockfile.checksum(pod_name)
-          meta[:source] = pod_source
+          meta[:source] = source
           # Pod::Specification
           podspec_path = pod_source.specification_path(pod_name, meta[:version])
           specification = Pod::Specification::from_file(podspec_path)

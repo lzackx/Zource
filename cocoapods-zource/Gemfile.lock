@@ -1,11 +1,7 @@
-PATH
-  remote: .
-  specs:
-    cocoapods-zource (1.0.0)
-      cocoapods
-
-PATH
-  remote: CocoaPods/CocoaPods
+GIT
+  remote: https://github.com/CocoaPods/CocoaPods.git
+  revision: 47532a0f04b0267fdfc3bfc9aa1e5db401c5c92a
+  branch: master
   specs:
     cocoapods (1.11.3)
       addressable (~> 2.8)
@@ -26,8 +22,10 @@ PATH
       ruby-macho (>= 2.3.0, < 3.0)
       xcodeproj (>= 1.21.0, < 2.0)
 
-PATH
-  remote: CocoaPods/Xcodeproj
+GIT
+  remote: https://github.com/CocoaPods/Xcodeproj.git
+  revision: 29cd0821d47f864abbd1ca80f23ff2aded0adfed
+  branch: master
   specs:
     xcodeproj (1.22.0)
       CFPropertyList (>= 2.3.3, < 4.0)
@@ -36,6 +34,12 @@ PATH
       colored2 (~> 3.1)
       nanaimo (~> 0.3.0)
       rexml (~> 3.2.4)
+
+PATH
+  remote: .
+  specs:
+    cocoapods-zource (1.0.0)
+      cocoapods
 
 GEM
   remote: https://rubygems.org/
@@ -111,7 +115,7 @@ GEM
       ethon (>= 0.9.0)
     tzinfo (2.0.5)
       concurrent-ruby (~> 1.0)
-    zeitwerk (2.6.0)
+    zeitwerk (2.6.1)
 
 PLATFORMS
   ruby
