@@ -2,6 +2,7 @@ require "cocoapods"
 require "xcodeproj"
 require "json"
 
+require "cocoapods-zource/pod/config+zource.rb"
 require "cocoapods-zource/pod/project_generator.rb"
 require "cocoapods-zource/pod/project_constructor.rb"
 require "cocoapods-zource/pod/xcframework_combinator.rb"
@@ -160,10 +161,10 @@ module CocoapodsZource
           # 4 order subspecs
           @binary_podspec&.subspecs.reverse!
           # 5. description
-          @binary_podspec&.description = JSON.pretty_generate(@meta)
+          @binary_podspec&.description = JSON.pretty_generate(@podspec.to_json)
           # 6. source
           source = Hash.new
-          source[:http] = CocoapodsZource::Configuration.configuration.binary_download_url(@binary_podspec.name, @meta[:version])
+          source[:http] = CocoapodsZource::Configuration.configuration.binary_download_url(@binary_podspec.name, @binary_podspec.version)
           @binary_podspec&.source = source
           # 7. static_framework
           @binary_podspec&.static_framework = true

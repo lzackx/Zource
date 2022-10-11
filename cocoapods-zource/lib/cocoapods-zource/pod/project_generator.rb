@@ -15,6 +15,7 @@ module CocoapodsZource
 
       def initialize(zource_pod)
         @zource_pod = zource_pod
+        @zource_pod.project_deployment_target
         @generated_app_project_path = @zource_pod.generated_project_path.join("App.xcodeproj")
         @generated_app_sandbox_path = @zource_pod.generated_project_path.join("Pods")
         @consumer = @zource_pod.podspec.consumer(:ios)
@@ -40,104 +41,22 @@ module CocoapodsZource
 
       def sandbox_for_zource_pod_project
         sandbox = Pod::Sandbox.new(@generated_app_sandbox_path)
-        zource_pods_hash = JSON.parse(Pod::Config.instance.zource_pods_json_path.read,
-                                      { symbolize_names: true })
-        zource_pods_hash.each {
-          |zource_pod_name, zource_pod_hash|
-          zp = ZourcePod.from_hash(zource_pod_hash)
-          if !zp.meta[:path].nil?
-            sandbox.store_local_path(zp.podspec.name,
-                                     zp.meta[:path],
+        Pod::Config.instance.zource_pods.each {
+          |zource_pod_name, zource_pod|
+          if !zource_pod.meta[:path].nil?
+            sandbox.store_local_path(zource_pod.podspec.name,
+                                     zource_pod.meta[:path],
                                      true)
           end
         }
         sandbox
       end
 
-      # @param  [Boolean] use_frameworks
-      #         whether frameworks should be used for the installation
-      #
-      # @param [Array<String>] test_spec_names
-      #         the test spec names to include in the podfile.
-      #
-      # @return [Podfile] a podfile that requires the specification on the
-      #         current platform.
-      #
-      # @note   The generated podfile takes into account whether the linter is
-      #         in local mode.
-      #
-      def podfile_from_zource_pod_spec(use_frameworks = true,
-                                       use_modular_headers = true,
-                                       use_static_frameworks = true)
-        urls = Array.new()
-        if CocoapodsZource::Configuration::configuration.repo_privacy_urls_array.count > 0
-          urls = urls + CocoapodsZource::Configuration::configuration.repo_privacy_urls_array
-        end
-        urls << Pod::TrunkSource::TRUNK_REPO_URL
-        zource_pod = @zource_pod
-        platform_name = @consumer.platform_name
-        podfile = Pod::Podfile.new do
-          install! "cocoapods",
-                   :deterministic_uuids => false,
-                   :warn_for_unused_master_specs_repo => false,
-                   :preserve_pod_file_structure => true
-          # By default inhibit warnings for all pods, except the one being validated.
-          inhibit_all_warnings!
-          urls.each { |u| source(u) }
-          target "App" do
-            if use_static_frameworks
-              use_frameworks!(:linkage => :static)
-            else
-              use_frameworks!(use_frameworks)
-            end
-            use_modular_headers! if use_modular_headers
-            platform(platform_name, zource_pod.project_deployment_target)
-
-            # pod
-            zource_pod_condition = zource_pod.meta
-            zource_pod_condition.delete(:version)
-            zource_pod_condition.delete(:checksum)
-            zource_pod_condition[:inhibit_warnings] = false
-            pod(zource_pod.podspec.name, zource_pod_condition)
-            # dependency pod
-            zource_pods_hash = JSON.parse(Pod::Config.instance.zource_pods_json_path.read,
-                                          { symbolize_names: true })
-            zource_pods_hash = zource_pods_hash.each {
-              |zource_pod_name, zource_pod_hash|
-              next if zource_pod_name.to_s == zource_pod.podspec.name
-              dependency_zource_pod = ZourcePod.from_hash(zource_pod_hash)
-              if dependency_zource_pod.meta.has_key?(:path) || dependency_zource_pod.meta.has_key?(:podspec)
-                dependency_zource_pod_condition = dependency_zource_pod.meta
-                dependency_zource_pod_condition.delete(:version)
-                dependency_zource_pod_condition.delete(:checksum)
-                dependency_zource_pod_condition[:inhibit_warnings] = false
-                pod(dependency_zource_pod.podspec.name, dependency_zource_pod_condition)
-              end
-            }
-          end
-          # Xcode14 & CocoaPods1.11.3 issue: https://github.com/CocoaPods/CocoaPods/issues/11402
-          def post_install_xcode14_pods_project_code_sign(installer)
-            installer.pods_project.targets.each do |target|
-              if target.respond_to?(:product_type) and target.product_type == "com.apple.product-type.bundle"
-                target.build_configurations.each do |config|
-                  config.build_settings["CODE_SIGNING_ALLOWED"] = "NO"
-                end
-              end
-            end
-          end
-
-          post_install do |installer|
-            # =================== Xcode14 & CocoaPods1.11.3 issue =================
-            post_install_xcode14_pods_project_code_sign(installer)
-          end
-        end
-        podfile
-      end
-
       def setup_environments
-        # setup Pod::Config.instance
         @original_config = Pod::Config.instance.clone
-        Pod::Config.instance.installation_root = Pathname.new(@zource_pod.generated_project_path)
+        pod_config = Pod::Config.new
+        pod_config.installation_root = Pathname.new(@zource_pod.generated_project_path)
+        Pod::Config.instance = pod_config
       end
 
       def reset_environments
@@ -169,6 +88,152 @@ module CocoapodsZource
         end
         app_project.save
         app_project.recreate_user_schemes
+      end
+
+      #   返回值 f(参数) {
+      #     if (基本情况条件) return 基本情况的结果;
+
+      #     修改参数；
+      #     返回值 = f(参数);
+
+      #     最终结果 = 根据参数与返回值计算
+      #     return 最终结果;
+      # }
+
+      # specification:   Pod::Specification
+      # return:          Array<String>
+      def dependencies_for(specification)
+        # 1
+        return Array.new if @dependencies_specification_read.include?(specification.name) || specification.all_dependencies.empty?
+        @dependencies_specification_read << specification.name
+        # 2
+        dependencies = specification.all_dependencies.map { |d| d.name }
+        # 3
+        zource_pod_dependencies = Pod::Config.instance.zource_pods.select {
+          |zource_pod_name, zource_pod| # ZoourcePod
+          shouldSelect = false
+          if dependencies.join(",").include?(zource_pod_name)
+            shouldSelect = true
+          end
+          shouldSelect
+        }
+        zource_pod_dependencies.each {
+          |zource_pod_name, zource_pod| # ZoourcePod
+          dependencies |= dependencies_for(zource_pod.podspec)
+        }
+        # 4
+        dependencies
+      end
+
+      def zource_pod_resolved_dependencies
+        # Compute dependencies for self
+        @dependencies_specification_read = Array.new
+        all_dependencies = dependencies_for(@zource_pod.podspec)
+        # Support React Native if depend on it
+        if all_dependencies.include?("React-Core")
+          @dependencies_specification_read = Array.new
+          all_dependencies |= dependencies_for(Pod::Config.instance.zource_pods["React"].podspec)
+          @dependencies_specification_read = Array.new
+          all_dependencies |= dependencies_for(Pod::Config.instance.zource_pods["React-CoreModules"].podspec)
+        end
+        # remove self
+        if all_dependencies.include?(@zource_pod.podspec.name)
+          all_dependencies.delete(@zource_pod.podspec.name)
+        end
+        zource_pod_dependencies = Hash.new
+        all_dependencies.each {
+          |dependency| # String
+          name = dependency.split("/").first
+          if !Pod::Config.instance.zource_pods[name].nil?
+            zource_pod_dependencies[dependency] = Pod::Config.instance.zource_pods[name]
+          else
+            abort("No ZourcePod for #{dependency}")
+          end
+        }
+        zource_pod_dependencies
+      end
+
+      # @param  [Boolean] use_frameworks
+      #         whether frameworks should be used for the installation
+      #
+      # @param [Array<String>] test_spec_names
+      #         the test spec names to include in the podfile.
+      #
+      # @return [Podfile] a podfile that requires the specification on the
+      #         current platform.
+      #
+      # @note   The generated podfile takes into account whether the linter is
+      #         in local mode.
+      #
+      def podfile_from_zource_pod_spec(use_frameworks = true,
+                                       use_modular_headers = true,
+                                       use_static_frameworks = true)
+        # source
+        urls = Array.new()
+        if CocoapodsZource::Configuration::configuration.repo_privacy_urls_array.count > 0
+          urls = urls + CocoapodsZource::Configuration::configuration.repo_privacy_urls_array
+        end
+        urls << Pod::TrunkSource::TRUNK_REPO_URL
+        # zource_pod variables
+        zource_pod = @zource_pod
+        # platform
+        platform_name = @consumer.platform_name
+        # zource_pod dependencies
+        zource_pod_dependencies = zource_pod_resolved_dependencies
+        # podfile
+        podfile = Pod::Podfile.new do
+          install! "cocoapods",
+                   :deterministic_uuids => false,
+                   :warn_for_unused_master_specs_repo => false,
+                   :preserve_pod_file_structure => true
+          # By default inhibit warnings for all pods, except the one being validated.
+          inhibit_all_warnings!
+          urls.each { |u| source(u) }
+          target "App" do
+            if use_static_frameworks
+              use_frameworks!(:linkage => :static)
+            else
+              use_frameworks!(use_frameworks)
+            end
+            use_modular_headers! if use_modular_headers
+            platform(platform_name, zource_pod.project_deployment_target)
+
+            # pod
+            zource_pod_condition = zource_pod.meta
+            zource_pod_condition.delete(:version)
+            zource_pod_condition.delete(:checksum)
+            zource_pod_condition[:inhibit_warnings] = false
+            pod(zource_pod.podspec.name, zource_pod_condition)
+            # dependency pod
+            # note: if not set dependencies explicitly, specification's dependency field will use most recent version to integrate the project, which may cause unknown behavior
+            zource_pod_dependencies.each {
+              |dependency_name, dependency_zource_pod|
+              dependency_zource_pod_condition = dependency_zource_pod.meta
+              dependency_zource_pod_condition.delete(:version)
+              dependency_zource_pod_condition.delete(:checksum)
+              if !dependency_zource_pod.meta.empty?
+                dependency_zource_pod_condition[:inhibit_warnings] = false
+                pod(dependency_name, dependency_zource_pod_condition)
+              end
+            }
+          end
+          # Xcode14 & CocoaPods1.11.3 issue: https://github.com/CocoaPods/CocoaPods/issues/11402
+          def post_install_xcode14_pods_project_code_sign(installer)
+            installer.pods_project.targets.each do |target|
+              if target.respond_to?(:product_type) and target.product_type == "com.apple.product-type.bundle"
+                target.build_configurations.each do |config|
+                  config.build_settings["CODE_SIGNING_ALLOWED"] = "NO"
+                end
+              end
+            end
+          end
+
+          post_install do |installer|
+            # =================== Xcode14 & CocoaPods1.11.3 issue =================
+            post_install_xcode14_pods_project_code_sign(installer)
+          end
+        end
+        podfile
       end
 
       # @return [String] The derived Swift version to use for validation. The order of precedence is as follows:

@@ -2,6 +2,7 @@ require "cocoapods"
 require "xcodeproj"
 
 require "cocoapods-zource/pod/zource_pod.rb"
+require "cocoapods-zource/pod/config+zource.rb"
 
 module CocoapodsZource
   class Maker
@@ -23,29 +24,11 @@ module CocoapodsZource
       @should_construct_project = should_construct_project
       @should_combine_xcframework = should_combine_xcframework
       @should_compress_binary = should_compress_binary
-      @zource_pods = Hash.new
+      Pod::Config.instance.zource_pods = Hash.new
       @pods_xcodeproj = Xcodeproj::Project.open(Pod::Config.instance.project_pods_root.join("Pods.xcodeproj"))
     end
 
     public
-
-    def self.setup_pod_config_environment
-      Pod::Config.instance.instance_eval do
-        def zource_root
-          if @zource_root.nil?
-            @zource_root = Pod::Config.instance.project_root.join(".zource")
-          end
-          @zource_root
-        end
-
-        def zource_pods_json_path
-          if @zource_pods_json_path.nil?
-            @zource_pods_json_path = zource_root.join("zource.pods.json")
-          end
-          @zource_pods_json_path
-        end
-      end
-    end
 
     def self.backup_project
       project_path = Pod::Config.instance.project_root
@@ -76,13 +59,13 @@ module CocoapodsZource
         make_zource_pods_from_spec_repos!
         setup_zource_pods_xcodeproject_target!
       end
-      UI.message "zource pods count: #{@zource_pods.count}".green
+      UI.message "zource pods count: #{Pod::Config.instance.zource_pods.count}".green
       save_zource_pods
     end
 
     def make_zource_pods
       UI.section "==== make zource pods ====" do
-        @zource_pods.values.each {
+        Pod::Config.instance.zource_pods.values.each {
           |zource_pod|
           zource_pod.save_binary_podspec
           if zource_pod.xcodeproject_target.class == Xcodeproj::Project::Object::PBXNativeTarget
@@ -106,14 +89,14 @@ module CocoapodsZource
     private
 
     def save_zource_pods
-      zource_pods_json = JSON.pretty_generate(@zource_pods)
+      zource_pods_json = JSON.pretty_generate(Pod::Config.instance.zource_pods)
       File.open(Pod::Config.instance.zource_pods_json_path, "w") do |f|
         f.write(zource_pods_json)
       end
     end
 
     def setup_zource_pods_xcodeproject_target!
-      @zource_pods.values.each {
+      Pod::Config.instance.zource_pods.values.each {
         |zource_pod|
         @pods_xcodeproj.targets.each {
           |target|
@@ -161,7 +144,7 @@ module CocoapodsZource
         specification = Pod::Specification::from_file(podspec_path)
         abort("Specification not found: #{key}") if specification.nil?
         zource_pod = ZourcePod.new(specification, meta)
-        @zource_pods[key] = zource_pod
+        Pod::Config.instance.zource_pods[key] = zource_pod
       }
     end
 
@@ -183,7 +166,7 @@ module CocoapodsZource
           podspec_path = pod_source.specification_path(pod_name, meta[:version])
           specification = Pod::Specification::from_file(podspec_path)
           zource_pod = ZourcePod.new(specification, meta)
-          @zource_pods[pod_name] = zource_pod
+          Pod::Config.instance.zource_pods[pod_name] = zource_pod
         }
       }
     end
