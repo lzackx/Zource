@@ -90,16 +90,6 @@ module CocoapodsZource
         app_project.recreate_user_schemes
       end
 
-      #   返回值 f(参数) {
-      #     if (基本情况条件) return 基本情况的结果;
-
-      #     修改参数；
-      #     返回值 = f(参数);
-
-      #     最终结果 = 根据参数与返回值计算
-      #     return 最终结果;
-      # }
-
       # specification:   Pod::Specification
       # return:          Array<String>
       def dependencies_for(specification)

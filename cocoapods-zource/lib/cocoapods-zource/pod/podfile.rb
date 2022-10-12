@@ -1,7 +1,8 @@
 require "cocoapods"
-require "cocoapods-zource/configuration/configuration"
 require "uri"
 require "net/http"
+require "cocoapods-zource/pod/config+zource.rb"
+require "cocoapods-zource/configuration/configuration"
 
 $ZOURCE_DEFAULT_SOURCE_PODS = [] # source as default in command environment
 $ZOURCE_PRIVACY_SOURCE_PODS = [] # source as privacy
@@ -15,18 +16,11 @@ module CocoapodsZource
 
     def self.load_podfile_local
       # Path for zource.podfile
-      project_root = Pod::Config.instance.project_root
-      path = File.join(project_root.to_s, "zource.podfile")
-      unless File.exist?(path)
-        path = File.join(project_root.to_s, "zource.podfile")
-      end
-      return if !File.exist?(path)
+      return if !Pod::Config.instance.zource_podfile_path.exist?
 
       # Read zource.podfile
-      contents = File.open(path, "r:utf-8", &:read)
-
       podfile = Pod::Config.instance.podfile
-      zource_podfile = Pod::Podfile.from_file(path)
+      zource_podfile = Pod::Podfile.from_file(Pod::Config.instance.zource_podfile_path.to_path)
 
       if zource_podfile
         local_pre_install_callback = nil
@@ -193,7 +187,7 @@ module CocoapodsZource
           end
         rescue Exception => e
           message = "Invalid `#{path}` file: #{e.message}"
-          raise Pod::DSLError.new(message, path, e, contents)
+          raise Pod::DSLError.new(message, path, e)
         end
       end
     end

@@ -1,4 +1,5 @@
 require "cocoapods"
+require "cocoapods-zource/pod/zource_pod.rb"
 
 module Pod
   class Config
@@ -12,7 +13,7 @@ module Pod
         zource_pods_hash = JSON.parse(zource_pods_json_path.read, { symbolize_names: true })
         zource_pods_hash.each {
           |zource_pod_name, zource_pod_hash|
-          zp = ZourcePod.from_hash(zource_pod_hash)
+          zp = CocoapodsZource::ZourcePod.from_hash(zource_pod_hash)
           @zource_pods[zource_pod_name] = zp
         }
       end
@@ -31,6 +32,20 @@ module Pod
         @zource_pods_json_path = zource_root.join("zource.pods.json")
       end
       @zource_pods_json_path
+    end
+
+    def zource_podfile_path
+      if @zource_podfile_path.nil?
+        @zource_podfile_path = Pod::Config.instance.project_root.join("zource.podfile")
+      end
+      @zource_podfile_path
+    end
+
+    def zource_configuration_path
+      if @zource_configuration_path.nil?
+        @zource_configuration_path = Pod::Config.instance.project_root.join("zource.yaml")
+      end
+      @zource_configuration_path
     end
 
     # End Class

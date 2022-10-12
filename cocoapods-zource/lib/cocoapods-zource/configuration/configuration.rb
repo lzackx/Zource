@@ -1,5 +1,6 @@
 require "yaml"
 require "cocoapods"
+require "cocoapods-zource/pod/config+zource.rb"
 
 module CocoapodsZource
   class Configuration
@@ -80,11 +81,12 @@ module CocoapodsZource
     end
 
     def configuration_file_with_environment(environment)
-      file = "zource.yml"
+      # file = "zource.yml"
       # if !environment.nil? && !environment.empty?
       #   file = "zource" + ".#{environment}" + ".yml"
       # end
-      Pod::Config.instance.project_root.join(file)
+      # Pod::Config.instance.project_root.join(file)
+      Pod::Config.instance.zource_configuration_path
     end
 
     def binary_download_url(name, version)
