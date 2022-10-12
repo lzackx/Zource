@@ -161,7 +161,7 @@ module CocoapodsZource
           meta = Hash.new
           meta[:version] = lockfile.version(pod_name).to_s
           meta[:checksum] = lockfile.checksum(pod_name)
-          meta[:source] = source
+          meta[:source] = pod_source.url
           # Pod::Specification
           podspec_path = pod_source.specification_path(pod_name, meta[:version])
           specification = Pod::Specification::from_file(podspec_path)
