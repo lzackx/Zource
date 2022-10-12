@@ -53,9 +53,7 @@ module Pod
           if @backup
             CocoapodsZource::Maker.backup_project
           end
-          if @remake
-            CocoapodsZource::Maker.make_zource_directory
-          end
+          CocoapodsZource::Maker.make_zource_directory(@remake)
           make_pods
         end
 

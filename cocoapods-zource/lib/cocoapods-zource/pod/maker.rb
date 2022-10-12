@@ -46,11 +46,11 @@ module CocoapodsZource
       end
     end
 
-    def self.make_zource_directory
-      if Pod::Config.instance.zource_root.exist? && !Pod::Config.instance.zource_root.to_s.eql?("/")
+    def self.make_zource_directory(should_remake = false)
+      if should_remake || Pod::Config.instance.zource_root.exist? && !Pod::Config.instance.zource_root.to_s.eql?("/")
         Pod::Config.instance.zource_root.rmtree
       end
-      Pod::Config.instance.zource_root.mkpath
+      Pod::Config.instance.zource_root.mkpath if !Pod::Config.instance.zource_root.exist?
     end
 
     def setup_zource_pods!
@@ -68,7 +68,7 @@ module CocoapodsZource
         Pod::Config.instance.zource_pods.values.each {
           |zource_pod|
           zource_pod.save_binary_podspec
-          if zource_pod.xcodeproject_target.class == Xcodeproj::Project::Object::PBXNativeTarget
+          if zource_pod.xcodeproject_target.is_a?(Xcodeproj::Project::Object::PBXNativeTarget)
             if @should_generate_project
               zource_pod.generate_project
             end
