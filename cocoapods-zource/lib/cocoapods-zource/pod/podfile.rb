@@ -4,7 +4,7 @@ require "net/http"
 require "cocoapods-zource/pod/config+zource.rb"
 require "cocoapods-zource/configuration/configuration"
 
-$ZOURCE_DEFAULT_SOURCE_PODS = [] # source as default in command environment
+$ZOURCE_ORIGINAL_SOURCE_PODS = [] # source as default in command environment
 $ZOURCE_PRIVACY_SOURCE_PODS = [] # source as privacy
 $ZOURCE_BINARY_SOURCE_PODS = [] # source as binary
 $ZOURCE_COCOAPODS_SOURCE_PODS = [] # source as cocoapods
@@ -40,141 +40,80 @@ module CocoapodsZource
           hash_sources = get_hash_value("sources") || []
           privacy_sources.each {
             |source|
-            hash_sources << source
+            hash_sources.unshift(source)
           }
           hash_sources.unshift(binary_source)
           set_hash_value("sources", hash_sources.uniq)
 
-          # podfile plugins
-          # if zource_podfile.plugins.any?
-          #   hash_plugins = podfile.plugins || {}
-          #   hash_plugins = hash_plugins.merge(zource_podfile.plugins)
-          #   set_hash_value(%w[plugins].first, hash_plugins)
-          # source code white list
-          # podfile.set_use_source_pods(zource_podfile.use_source_pods) if zource_podfile.use_source_pods
-          # podfile.use_binaries!(zource_podfile.use_binaries?)
-          # end
+          zource_podfile&.target_definition_list&.each do |zource_podfile_target| #Pod::Podfile::TargetDefinition
+            next if zource_podfile_target.abstract?
+            zource_target_dependencies = zource_podfile_target.dependencies # Array<Pod::Dependency>
 
-          zource_podfile&.target_definition_list&.each do |local_target|
-            next if local_target.name == "Pods"
+            # compare target definition between zource and origin
+            target_definition_list.each do |original_podfile_target|
+              next unless original_podfile_target.name == zource_podfile_target.name
+              original_target_dependencies = original_podfile_target.dependencies  # Array<Pod::Dependency>
 
-            target_definition_list.each do |target|
-              next unless target.name == local_target.name
-
-              target.instance_exec do
+              original_podfile_target.instance_exec do
                 # remove then set
-
-                local_dependencies = local_target.to_hash["dependencies"] || Array.new
-                target_dependencies = target.to_hash["dependencies"]
-
-                # remove origin target dependency
-                local_dependencies.each do |local_dependency|
-                  unless local_dependency.is_a?(Hash) && local_dependency.keys.first
-                    next
+                zource_target_dependencies_names = zource_target_dependencies.map { |ztd| ztd.name }
+                original_target_dependencies = original_target_dependencies.delete_if {
+                  |dependency|
+                  should_delete = false
+                  if zource_target_dependencies_names.include?(dependency.name)
+                    should_delete = true
                   end
-
-                  target_dependencies.each do |target_dependency|
-                    dp_hash_equal = target_dependency.is_a?(Hash) &&
-                                    target_dependency.keys.first &&
-                                    target_dependency.keys.first == local_dependency.keys.first
-                    dp_str_equal = target_dependency.is_a?(String) &&
-                                   target_dependency == local_dependency.keys.first
-                    next unless dp_hash_equal || dp_str_equal
-
-                    target_dependencies.delete target_dependency
-                    break
-                  end
-                end
+                  should_delete
+                }
 
                 final_dependencies = Array.new
                 # merge in dependencies
-                merged_dependencies = target_dependencies + local_dependencies
+                merged_dependencies = original_target_dependencies | zource_target_dependencies
                 # set source if specified by global variables
-                merged_dependencies.each do |dependency|
-                  key = nil
-                  value = nil
-                  if dependency.is_a?(String)
-                    key = dependency
-                  elsif dependency.is_a?(Hash)
-                    key = dependency.keys.first
-                    value = dependency[key]
-                  end
-                  if key.include?("/")
-                    key = key.split("/").first
-                  end
-                  next if name.nil?
-                  # if there is dependency in binary source
-                  # uri = URI("#{CocoapodsZource::Configuration::configuration.binary_upload_url}/#{key}")
-                  # response = Net::HTTP.get_response(uri)
-                  # if !response.is_a?(Net::HTTPSuccess)
-                  #   abort("request failure: #{uri}")
-                  # end
-                  # if JSON.parse(response.body).keys.count <= 0
-                  #   final_dependencies << dependency
-                  #   next
-                  # end
-
-                  source_hash = Hash.new
-                  if $ZOURCE_DEFAULT_SOURCE_PODS.include?(key)
-                    # ZOURCE_DEFAULT_SOURCE_PODS
+                merged_dependencies.each {
+                  |dependency|
+                  # Default to binary source since ordered sources added before
+                  # setup source if there are dependencies name included by the specified variables in zource.podfile
+                  if $ZOURCE_ORIGINAL_SOURCE_PODS.include?(dependency.root_name)
+                    # ZOURCE_ORIGINAL_SOURCE_PODS
                     # do nothing
-                    final_dependencies << dependency
-                    next
-                  elsif $ZOURCE_PRIVACY_SOURCE_PODS.include?(key)
+                  elsif $ZOURCE_PRIVACY_SOURCE_PODS.include?(dependency.root_name)
                     # ZOURCE_PRIVACY_SOURCE_PODS
-                    source_hash[:source] = privacy_sources.first
-                  elsif $ZOURCE_COCOAPODS_SOURCE_PODS.include?(key)
+                    dependency.podspec_repo = privacy_sources.first
+                    dependency.external_source = nil
+                  elsif $ZOURCE_COCOAPODS_SOURCE_PODS.include?(dependency.root_name)
                     # ZOURCE_COCOAPODS_SOURCE_PODS
-                    source_hash[:source] = "https://github.com/CocoaPods/Specs.git"
-                  elsif $ZOURCE_BINARY_SOURCE_PODS.include?(key)
+                    dependency.podspec_repo = "https://github.com/CocoaPods/Specs.git"
+                    dependency.external_source = nil
+                  elsif $ZOURCE_BINARY_SOURCE_PODS.include?(dependency.root_name)
                     # ZOURCE_BINARY_SOURCE_PODS
-                    source_hash[:source] = binary_source
+                    dependency.podspec_repo = binary_source
+                    dependency.external_source = nil
                   else
-                    source_hash[:source] = binary_source # default to binary_source
+                    # use source as specified
+                    dependency.podspec_repo = nil
+                    dependency.external_source = nil
                   end
-
-                  final_value = value || Array.new
-                  # add source if needed
-                  if !source_hash[:source].nil?
-                    final_value << source_hash
-                  end
-
-                  final_value = final_value.reject {
-                    |v|
-                    should_reject = false
-                    if v.is_a?(Hash)
-                      if v.keys.include?(:git) || v.keys.include?(:path) || v.keys.include?(:podspec)
-                        should_reject = true
-                      end
-                    end
-                    should_reject
-                  }
-
                   # finally, add to final_dependencies
-                  final_dependency = Hash[key => final_value]
-                  final_dependencies << final_dependency
-
-                  # if source_hash.keys.empty?
-                  #   final_dependencies << dependency
-                  # else
-                  #   final_value = value || Array.new
-                  #   # final_value = final_value.reject {
-                  #   #   |v|
-                  #   #   should_reject = false
-                  #   #   if v.is_a?(Hash)
-                  #   #     if v.keys.include?(:git) || v.keys.include?(:path) || v.keys.include?(:podspec)
-                  #   #       should_reject = true
-                  #   #     end
-                  #   #   end
-                  #   #   should_reject
-                  #   # }
-                  #   final_value << source_hash
-                  #   final_dependency = Hash[key => final_value]
-                  #   final_dependencies << final_dependency
-                  # end
-
-                end
-                set_hash_value(%w[dependencies].first, final_dependencies)
+                  final_dependencies << dependency
+                }
+                final_dependencies_hash_array = final_dependencies.map {
+                  |fd|
+                  requirements = Array.new
+                  if !fd.podspec_repo.nil?
+                    requirements << fd.podspec_repo
+                  elsif fd.external?
+                    requirements << fd.external_source
+                  elsif fd.requirement != Pod::Requirement.default
+                    requirements << fd.requirement.to_s
+                  end
+                  mfd = fd.name
+                  if !requirements.empty?
+                    mfd = { fd.name => requirements }
+                  end
+                  mfd
+                }
+                set_hash_value("dependencies", final_dependencies_hash_array)
               end
             end
           end
@@ -195,9 +134,9 @@ module CocoapodsZource
     def self.pod_dependencies_hash_from_podfile
       pod_dependencies = Hash.new
       target_definition_list = Pod::Config.instance.podfile.target_definition_list
-      target_definition_list.each do |target|
-        next if target.name == "Pods"
-        dependencies = target.to_hash["dependencies"] # Pod::Config.instance.podfile.target_definition_list.last.to_hash["dependencies"]
+      target_definition_list.each do |original_podfile_target|
+        next if original_podfile_target.name == "Pods"
+        dependencies = original_podfile_target.to_hash["dependencies"] # Pod::Config.instance.podfile.target_definition_list.last.to_hash["dependencies"]
         dependencies.each do |dependency|
           if dependency.is_a?(String)
             pod_dependencies[dependency] = Array.new

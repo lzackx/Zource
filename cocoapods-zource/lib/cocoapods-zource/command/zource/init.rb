@@ -49,7 +49,7 @@ module Pod
 # use zource.podfile to setup Podfile
 
 # source as default in command environment
-$ZOURCE_DEFAULT_SOURCE_PODS = [
+$ZOURCE_ORIGINAL_SOURCE_PODS = [
 
 ] 
 
