@@ -48,6 +48,13 @@ module Pod
       @zource_configuration_path
     end
 
+    def zource_aggregated_podspec_path
+      if @zource_aggregated_podspec_path.nil?
+        @zource_aggregated_podspec_path = zource_root.join("zource.aggregated.pod.podspec")
+      end
+      @zource_aggregated_podspec_path
+    end
+
     # End Class
   end
 end

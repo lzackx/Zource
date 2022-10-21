@@ -10,7 +10,7 @@ module CocoapodsZource
       end
 
       def compress
-        Dir::chdir(@zource_pod.zource_pod_binary_path)
+        Dir::chdir(@zource_pod.zource_pod_binary_directory)
         executable = "zip"
         command = Array.new
         command << "-r"

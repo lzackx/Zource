@@ -22,10 +22,10 @@ module CocoapodsZource
 
     # Calculated
     attr_reader :zource_path
-    attr_reader :generated_project_path
-    attr_reader :archived_path
-    attr_reader :zource_pod_binary_path
-    attr_reader :zource_pod_product_path
+    attr_reader :zource_pod_project_directory
+    attr_reader :zource_pod_archived_directory
+    attr_reader :zource_pod_binary_directory
+    attr_reader :zource_pod_product_directory
     attr_reader :zip_path
     attr_reader :binary_podspec_path
     attr_reader :binary_podspec
@@ -40,14 +40,14 @@ module CocoapodsZource
       end
       @meta = meta
       # Directory Path
-      @zource_pod_path = Pod::Config.instance.zource_root.join(@podspec.name)
-      @generated_project_path = @zource_pod_path.join("project")
-      @archived_path = @zource_pod_path.join("archived")
-      @zource_pod_binary_path = @zource_pod_path.join("binary")
-      @zource_pod_product_path = @zource_pod_path.join("product")
+      @zource_pod_directory = Pod::Config.instance.zource_root.join(@podspec.name)
+      @zource_pod_project_directory = @zource_pod_directory.join("project")
+      @zource_pod_archived_directory = @zource_pod_directory.join("archived")
+      @zource_pod_binary_directory = @zource_pod_directory.join("binary")
+      @zource_pod_product_directory = @zource_pod_directory.join("product")
       # File path
-      @zip_path = @zource_pod_product_path.join("#{@podspec.name}.zip")
-      @binary_podspec_path = @zource_pod_product_path.join("#{@podspec.name}.podspec.json")
+      @zip_path = @zource_pod_product_directory.join("#{@podspec.name}.zip")
+      @binary_podspec_path = @zource_pod_product_directory.join("#{@podspec.name}.podspec.json")
       setup_path
     end
 
@@ -64,11 +64,11 @@ module CocoapodsZource
         podspec: @podspec.defined_in_file,
         meta: @meta,
         xcodeproject_target: "#{@xcodeproject_target&.name}(#{@xcodeproject_target&.class})",
-        zource_pod_path: @zource_pod_path,
-        generated_project_path: @generated_project_path,
-        archived_path: @archived_path,
-        zource_pod_binary_path: @zource_pod_binary_path,
-        zource_pod_product_path: @zource_pod_product_path,
+        zource_pod_directory: @zource_pod_directory,
+        zource_pod_project_directory: @zource_pod_project_directory,
+        zource_pod_archived_directory: @zource_pod_archived_directory,
+        zource_pod_binary_directory: @zource_pod_binary_directory,
+        zource_pod_product_directory: @zource_pod_product_directory,
         zip_path: @zip_path,
         binary_podspec_path: @binary_podspec_path,
       }
@@ -189,14 +189,14 @@ module CocoapodsZource
       @binary_podspec
     end
 
-    private
+    protected
 
     def setup_path
-      @zource_pod_path.mkdir if !@zource_pod_path.exist?
-      @generated_project_path.mkdir if !@generated_project_path.exist?
-      @archived_path.mkdir if !@archived_path.exist?
-      @zource_pod_binary_path.mkdir if !@zource_pod_binary_path.exist?
-      @zource_pod_product_path.mkdir if !@zource_pod_product_path.exist?
+      @zource_pod_directory.mkdir if !@zource_pod_directory.exist?
+      @zource_pod_project_directory.mkdir if !@zource_pod_project_directory.exist?
+      @zource_pod_archived_directory.mkdir if !@zource_pod_archived_directory.exist?
+      @zource_pod_binary_directory.mkdir if !@zource_pod_binary_directory.exist?
+      @zource_pod_product_directory.mkdir if !@zource_pod_product_directory.exist?
     end
 
     def clear_podspec_attributes(spec_hash)
@@ -270,14 +270,14 @@ module CocoapodsZource
         resource_path_prefix = @podspec.defined_in_file.dirname
       end
       resource_absolute_path = resource_path_prefix.join(resource_path)
-      zource_pod_binary_resource_path = @zource_pod_binary_path.join(resource_path)
+      zource_pod_binary_resource_path = @zource_pod_binary_directory.join(resource_path)
       FileUtils.mkdir_p(zource_pod_binary_resource_path.to_s) if !zource_pod_binary_resource_path.exist?
       # Copy
       Dir::glob(resource_absolute_path).each {
         |f|
         next if File.basename(f).eql?("*") || File.basename(f).eql?("**")
         f_relative_path = File.join(".", f[resource_path_prefix.to_s.length...f.length])
-        zource_pod_resource_path = @zource_pod_binary_path.join(f_relative_path)
+        zource_pod_resource_path = @zource_pod_binary_directory.join(f_relative_path)
         if !zource_pod_resource_path.exist?
           FileUtils.mkdir_p(zource_pod_resource_path)
         end

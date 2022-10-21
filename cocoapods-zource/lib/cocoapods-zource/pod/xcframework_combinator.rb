@@ -12,9 +12,9 @@ module CocoapodsZource
         if !@zource_pod.podspec&.module_name.nil?
           @framework_name = @zource_pod.podspec.module_name
         end
-        @xcframework_path = @zource_pod.zource_pod_binary_path.join("#{@framework_name}.xcframework")
-        @ios_archived_path = @zource_pod.archived_path.join("#{@zource_pod.podspec.name}.ios.xcarchive").join("Products").join("Library").join("Frameworks").join("#{@framework_name}.framework")
-        @ios_simulator_archived_path = @zource_pod.archived_path.join("#{@zource_pod.podspec.name}.ios.simulator.xcarchive").join("Products").join("Library").join("Frameworks").join("#{@framework_name}.framework")
+        @xcframework_path = @zource_pod.zource_pod_binary_directory.join("#{@framework_name}.xcframework")
+        @ios_archived_path = @zource_pod.zource_pod_archived_directory.join("#{@zource_pod.podspec.name}.ios.xcarchive").join("Products").join("Library").join("Frameworks").join("#{@framework_name}.framework")
+        @ios_simulator_archived_path = @zource_pod.zource_pod_archived_directory.join("#{@zource_pod.podspec.name}.ios.simulator.xcarchive").join("Products").join("Library").join("Frameworks").join("#{@framework_name}.framework")
       end
 
       def combine

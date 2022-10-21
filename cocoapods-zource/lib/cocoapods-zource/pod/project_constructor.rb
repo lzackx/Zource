@@ -4,13 +4,11 @@ module CocoapodsZource
   class ZourcePod
     class ProjectConstructor
       attr_reader :zource_pod
-      attr_reader :generated_app_project_path
-      attr_reader :generated_app_sandbox_path
+      attr_reader :sandbox_directory
 
       def initialize(zource_pod)
         @zource_pod = zource_pod
-        @generated_app_project_path = @zource_pod.generated_project_path.join("App.xcodeproj")
-        @generated_app_sandbox_path = @zource_pod.generated_project_path.join("Pods")
+        @sandbox_directory = @zource_pod.zource_pod_project_directory.join("Pods")
       end
 
       # xcodebuild [-project <projectname>] -scheme <schemeName> [-destination <destinationspecifier>]... [-configuration <configurationname>] [-arch <architecture>]... [-sdk [<sdkname>|<sdkpath>]] [-showBuildSettings [-json]] [-showdestinations] [<buildsetting>=<value>]... [<buildaction>]...
@@ -27,7 +25,7 @@ module CocoapodsZource
         command << "-showBuildTimingSummary"
         command << "-verbose"
         command << "-project"
-        command << "#{@generated_app_sandbox_path.join("Pods.xcodeproj")}"
+        command << "#{@sandbox_directory.join("Pods.xcodeproj")}"
         command << "-scheme"
         command << "Pods-App"
         command << "-destination"
@@ -35,7 +33,7 @@ module CocoapodsZource
         command << "-configuration"
         command << "Release"
         command << "-archivePath"
-        command << "#{@zource_pod.archived_path.join("#{@zource_pod.podspec.name}.ios.xcarchive")}"
+        command << "#{@zource_pod.zource_pod_archived_directory.join("#{@zource_pod.podspec.name}.ios.xcarchive")}"
         command << "BUILD_LIBRARY_FOR_DISTRIBUTION=YES"
         command << "SKIP_INSTALL=NO"
         raise_on_failure = true
@@ -54,7 +52,7 @@ module CocoapodsZource
         command << "-showBuildTimingSummary"
         command << "-verbose"
         command << "-project"
-        command << "#{@generated_app_sandbox_path.join("Pods.xcodeproj")}"
+        command << "#{@sandbox_directory.join("Pods.xcodeproj")}"
         command << "-scheme"
         command << "Pods-App"
         command << "-destination"
@@ -62,7 +60,7 @@ module CocoapodsZource
         command << "-configuration"
         command << "Release"
         command << "-archivePath"
-        command << "#{@zource_pod.archived_path.join("#{@zource_pod.podspec.name}.ios.simulator.xcarchive")}"
+        command << "#{@zource_pod.zource_pod_archived_directory.join("#{@zource_pod.podspec.name}.ios.simulator.xcarchive")}"
         command << "BUILD_LIBRARY_FOR_DISTRIBUTION=YES"
         command << "SKIP_INSTALL=NO"
         raise_on_failure = true

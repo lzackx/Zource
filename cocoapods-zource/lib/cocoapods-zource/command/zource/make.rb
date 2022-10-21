@@ -15,14 +15,15 @@ module Pod
 
         def self.options
           [
-            ["--configuration=Configuration", "Configuration for building, default to: Release"],
+            ["--configuration=[CONFIGURATION]", "Configuration for building, default to: Release"],
             ["--update-dependency", "Execute 'pod update' before make zource pods"],
             ["--backup", "Backup the project directory"],
             ["--remake", "remake zource directory"],
+            ["--aggregation", "make a zource pod that aggregated with all pod in Pod.xcodeproj"],
             ["--not-generate-project", "Not generate project"],
             ["--not-construct-project", "Not construct project"],
-            ["--not-combine-xcframework", "Not combine xcframework"],
-            ["--not-compress-binary", "Not compress binary"],
+            ["--not-make-xcframework", "Not make xcframework"],
+            ["--not-make-binary", "Not compress binary"],
           ].concat(super)
         end
 
@@ -30,13 +31,14 @@ module Pod
           super
           @h = argv.flag?("help")
           @configuration = argv.option("configuration", "Release")
+          @aggregation = argv.flag?("aggregation", false)
           @update_dependency = argv.flag?("update-dependency", false)
           @backup = argv.flag?("backup", false)
           @remake = argv.flag?("remake", false)
           @not_generate_project = argv.flag?("not-generate-project", false)
           @not_construct_project = argv.flag?("not-construct-project", false)
-          @not_combine_xcframework = argv.flag?("not-combine-xcframework", false)
-          @not_compress_binary = argv.flag?("not-compress-binary", false)
+          @not_make_xcframework = argv.flag?("not-make-xcframework", false)
+          @not_make_binary = argv.flag?("not-make-binary", false)
           @unhandled_args = argv.remainder!
         end
 
@@ -70,12 +72,12 @@ module Pod
         def make_pods
           UI.message "\nMaking pods ...\n".green
           maker = CocoapodsZource::Maker.new(:configuration => @configuration,
+                                             :is_aggregation => @aggregation,
                                              :should_generate_project => !@not_generate_project,
                                              :should_construct_project => !@not_construct_project,
-                                             :should_combine_xcframework => !@not_combine_xcframework,
-                                             :should_compress_binary => !@not_compress_binary)
-          maker.setup_zource_pods!
-          maker.make_zource_pods
+                                             :should_make_xcframework => !@not_make_xcframework,
+                                             :should_make_binary => !@not_make_binary)
+          maker.produce
           UI.message "\nDone\n".green
         end
       end

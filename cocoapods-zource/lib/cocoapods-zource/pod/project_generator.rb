@@ -16,8 +16,8 @@ module CocoapodsZource
       def initialize(zource_pod)
         @zource_pod = zource_pod
         @zource_pod.project_deployment_target
-        @generated_app_project_path = @zource_pod.generated_project_path.join("App.xcodeproj")
-        @generated_app_sandbox_path = @zource_pod.generated_project_path.join("Pods")
+        @generated_app_project_path = @zource_pod.zource_pod_project_directory.join("App.xcodeproj")
+        @generated_app_sandbox_path = @zource_pod.zource_pod_project_directory.join("Pods")
         @consumer = @zource_pod.podspec.consumer(:ios)
         @sandbox = sandbox_for_zource_pod_project
         @podfile = podfile_from_zource_pod_spec
@@ -55,7 +55,7 @@ module CocoapodsZource
       def setup_environments
         @original_config = Pod::Config.instance.clone
         pod_config = Pod::Config.new
-        pod_config.installation_root = Pathname.new(@zource_pod.generated_project_path)
+        pod_config.installation_root = Pathname.new(@zource_pod.zource_pod_project_directory)
         Pod::Config.instance = pod_config
       end
 
@@ -120,12 +120,12 @@ module CocoapodsZource
         @dependencies_specification_read = Array.new
         all_dependencies = dependencies_for(@zource_pod.podspec)
         # Support React Native if depend on it
-        if all_dependencies.include?("React-Core")
-          @dependencies_specification_read = Array.new
-          all_dependencies |= dependencies_for(Pod::Config.instance.zource_pods["React"].podspec)
-          @dependencies_specification_read = Array.new
-          all_dependencies |= dependencies_for(Pod::Config.instance.zource_pods["React-CoreModules"].podspec)
-        end
+        # if all_dependencies.include?("React-Core")
+        #   @dependencies_specification_read = Array.new
+        #   all_dependencies |= dependencies_for(Pod::Config.instance.zource_pods["React"].podspec)
+        #   @dependencies_specification_read = Array.new
+        #   all_dependencies |= dependencies_for(Pod::Config.instance.zource_pods["React-CoreModules"].podspec)
+        # end
         # remove self
         if all_dependencies.include?(@zource_pod.podspec.name)
           all_dependencies.delete(@zource_pod.podspec.name)

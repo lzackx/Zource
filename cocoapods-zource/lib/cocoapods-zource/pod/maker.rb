@@ -2,6 +2,7 @@ require "cocoapods"
 require "xcodeproj"
 
 require "cocoapods-zource/pod/zource_pod.rb"
+require "cocoapods-zource/pod/aggregation/zource_aggregrated_pod.rb"
 require "cocoapods-zource/pod/config+zource.rb"
 
 module CocoapodsZource
@@ -9,21 +10,25 @@ module CocoapodsZource
     include Pod
 
     attr_accessor :zource_pods
+    attr_reader :configuration
+    attr_reader :is_aggregation
     attr_reader :should_generate_project
     attr_reader :should_construct_project
-    attr_reader :should_combine_xcframework
-    attr_reader :should_compress_binary
+    attr_reader :should_make_xcframework
+    attr_reader :should_make_binary
 
     def initialize(configuration,
+                   is_aggregation = false,
                    should_generate_project = true,
                    should_construct_project = true,
-                   should_combine_xcframework = true,
-                   should_compress_binary = true)
+                   should_make_xcframework = true,
+                   should_make_binary = true)
       @configuration = configuration
+      @is_aggregation = is_aggregation
       @should_generate_project = should_generate_project
       @should_construct_project = should_construct_project
-      @should_combine_xcframework = should_combine_xcframework
-      @should_compress_binary = should_compress_binary
+      @should_make_xcframework = should_make_xcframework
+      @should_make_binary = should_make_binary
       Pod::Config.instance.zource_pods = Hash.new
       @pods_xcodeproj = Xcodeproj::Project.open(Pod::Config.instance.project_pods_root.join("Pods.xcodeproj"))
     end
@@ -53,14 +58,33 @@ module CocoapodsZource
       Pod::Config.instance.zource_root.mkpath if !Pod::Config.instance.zource_root.exist?
     end
 
-    def setup_zource_pods!
-      UI.section "==== setup zource pods ====" do
-        make_zource_pods_from_external_sources!
-        make_zource_pods_from_spec_repos!
-        setup_zource_pods_xcodeproject_target!
+    def produce
+      setup_zource_pods!
+      if @is_aggregation
+        make_zource_aggregated_pod
+      else
+        make_zource_pods
       end
-      UI.message "zource pods count: #{Pod::Config.instance.zource_pods.count}".green
-      save_zource_pods
+    end
+
+    private
+
+    def make_zource_aggregated_pod
+      UI.section "==== make zource aggregated pod ====" do
+        if !Pod::Configuration.instance.zource_aggregated_podspec_path.exist?
+          abort("Please setup zource aggregrated pod podspec first, template: https://github.com/CocoaPods/pod-template/blob/master/NAME.podspec")
+        end
+        zource_aggregated_pod = CocoapodsZource::ZourceAggregratedPod.new
+        if @should_construct_project
+          zource_aggregated_pod.construct_project
+        end
+        if @should_make_xcframework
+          zource_aggregated_pod.compose_xcframeworks
+        end
+        if @should_make_binary
+          zource_aggregated_pod.compress_binary
+        end
+      end
     end
 
     def make_zource_pods
@@ -75,10 +99,10 @@ module CocoapodsZource
             if @should_construct_project
               zource_pod.construct_project
             end
-            if @should_combine_xcframework
+            if @should_make_xcframework
               zource_pod.combine_xcframework
             end
-            if @should_compress_binary
+            if @should_make_binary
               zource_pod.compress_binary
             end
           end
@@ -86,7 +110,15 @@ module CocoapodsZource
       end
     end
 
-    private
+    def setup_zource_pods!
+      UI.section "==== setup zource pods ====" do
+        make_zource_pods_from_external_sources!
+        make_zource_pods_from_spec_repos!
+        setup_zource_pods_xcodeproject_target!
+      end
+      UI.message "zource pods count: #{Pod::Config.instance.zource_pods.count}".green
+      save_zource_pods
+    end
 
     def save_zource_pods
       zource_pods_json = JSON.pretty_generate(Pod::Config.instance.zource_pods)
