@@ -18,7 +18,7 @@ module CocoapodsZource
     attr_reader :should_make_binary
 
     def initialize(configuration,
-                   is_aggregation = false,
+                   is_aggregation,
                    should_generate_project = true,
                    should_construct_project = true,
                    should_make_xcframework = true,
@@ -52,7 +52,7 @@ module CocoapodsZource
     end
 
     def self.make_zource_directory(should_remake = false)
-      if should_remake || Pod::Config.instance.zource_root.exist? && !Pod::Config.instance.zource_root.to_s.eql?("/")
+      if should_remake && Pod::Config.instance.zource_root.exist? && !Pod::Config.instance.zource_root.to_s.eql?("/")
         Pod::Config.instance.zource_root.rmtree
       end
       Pod::Config.instance.zource_root.mkpath if !Pod::Config.instance.zource_root.exist?
@@ -71,10 +71,12 @@ module CocoapodsZource
 
     def make_zource_aggregated_pod
       UI.section "==== make zource aggregated pod ====" do
-        if !Pod::Configuration.instance.zource_aggregated_podspec_path.exist?
+        if !Pod::Config.instance.zource_aggregated_podspec_path.exist?
           abort("Please setup zource aggregrated pod podspec first, template: https://github.com/CocoaPods/pod-template/blob/master/NAME.podspec")
         end
         zource_aggregated_pod = CocoapodsZource::ZourceAggregratedPod.new
+        zource_aggregated_pod.save_zource_aggregated_pod
+        zource_aggregated_pod.save_binary_podspec
         if @should_construct_project
           zource_aggregated_pod.construct_project
         end

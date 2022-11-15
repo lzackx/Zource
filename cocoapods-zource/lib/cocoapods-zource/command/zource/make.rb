@@ -71,12 +71,12 @@ module Pod
 
         def make_pods
           UI.message "\nMaking pods ...\n".green
-          maker = CocoapodsZource::Maker.new(:configuration => @configuration,
-                                             :is_aggregation => @aggregation,
-                                             :should_generate_project => !@not_generate_project,
-                                             :should_construct_project => !@not_construct_project,
-                                             :should_make_xcframework => !@not_make_xcframework,
-                                             :should_make_binary => !@not_make_binary)
+          maker = CocoapodsZource::Maker.new(@configuration,
+                                             @aggregation,
+                                             !@not_generate_project,
+                                             !@not_construct_project,
+                                             !@not_make_xcframework,
+                                             !@not_make_binary)
           maker.produce
           UI.message "\nDone\n".green
         end

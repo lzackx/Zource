@@ -173,7 +173,7 @@ module CocoapodsZource
           # 9. license
           @binary_podspec&.license = "MIT"
           # 10. resource / resources / resource_bundles
-          copy_resource_if_needed
+          copy_resources_from(self)
           # Fix Swift compiler bug about .swiftinterface file,
           # https://github.com/apple/swift/issues/43510, https://github.com/apple/swift/issues/56573
           # module_name = "Zource#{key}"
@@ -222,52 +222,12 @@ module CocoapodsZource
       } unless spec_hash["subspecs"].nil?
     end
 
-    def copy_resource_if_needed
-      # resource
-      if @binary_podspec.to_hash.key?("resource")
-        resource_path = @binary_podspec.to_hash["resource"]
-        copy_resource(resource_path)
-      end
-      # resources
-      if @binary_podspec.to_hash.key?("resources")
-        resources = @binary_podspec.to_hash["resources"]
-        if resources.is_a?(String)
-          resource_path = resources
-          copy_resource(resource_path)
-        elsif resources.is_a?(Array)
-          resources.each {
-            |resource|
-            resource_path = resource
-            copy_resource(resource_path)
-          }
-        end
-      end
-      # resource_bundles
-      if @binary_podspec.to_hash.key?("resource_bundles")
-        resource_bundles = @binary_podspec.to_hash["resource_bundles"]
-        resource_bundles.each {
-          |key, value|
-          if value.is_a?(String)
-            resource_path = value
-            copy_resource(resource_path)
-          elsif value.is_a?(Array)
-            zource_resources = Array.new
-            value.each {
-              |v|
-              resource_path = v
-              copy_resource(resource_path)
-            }
-          end
-        }
-      end
-    end
-
-    def copy_resource(resource_path)
+    def copy_resource(podspec, resource_path)
       # Path
       resource_path = File.join(".", resource_path)
-      resource_path_prefix = Pod::Config.instance.sandbox_root.join(@podspec.name)
+      resource_path_prefix = Pod::Config.instance.sandbox_root.join(podspec.name)
       if !@meta[:path].nil?
-        resource_path_prefix = @podspec.defined_in_file.dirname
+        resource_path_prefix = podspec.defined_in_file.dirname
       end
       resource_absolute_path = resource_path_prefix.join(resource_path)
       zource_pod_binary_resource_path = @zource_pod_binary_directory.join(resource_path)
@@ -283,6 +243,55 @@ module CocoapodsZource
         end
         FileUtils.cp_r(f, zource_pod_resource_path.dirname, verbose: true)
       }
+    end
+
+    def copy_resources_from(source_zource_pod)
+      # resource
+      if source_zource_pod.podspec.to_hash.key?("resource")
+        resource_path = source_zource_pod.podspec.to_hash["resource"]
+        copy_resource(source_zource_pod.podspec, resource_path)
+      end
+      # resources
+      if source_zource_pod.podspec.to_hash.key?("resources")
+        resources = source_zource_pod.podspec.to_hash["resources"]
+        if resources.is_a?(String)
+          resource_path = resources
+          copy_resource(source_zource_pod.podspec, resource_path)
+        elsif resources.is_a?(Array)
+          resources.each {
+            |resource|
+            resource_path = resource
+            copy_resource(source_zource_pod.podspec, resource_path)
+          }
+        end
+      end
+      # resource_bundle
+      if source_zource_pod.podspec.to_hash.key?("resource_bundle")
+        resource_bundle = source_zource_pod.podspec.to_hash["resource_bundle"]
+        resource_bundle.each {
+          |key, value|
+          resource_path = value
+          copy_resource(source_zource_pod.podspec, resource_path)
+        }
+      end
+      # resource_bundles
+      if source_zource_pod.podspec.to_hash.key?("resource_bundles")
+        resource_bundles = source_zource_pod.podspec.to_hash["resource_bundles"]
+        resource_bundles.each {
+          |key, value|
+          if value.is_a?(String)
+            resource_path = value
+            copy_resource(source_zource_pod.podspec, resource_path)
+          elsif value.is_a?(Array)
+            zource_resources = Array.new
+            value.each {
+              |v|
+              resource_path = v
+              copy_resource(source_zource_pod.podspec, resource_path)
+            }
+          end
+        }
+      end
     end
 
     # End
