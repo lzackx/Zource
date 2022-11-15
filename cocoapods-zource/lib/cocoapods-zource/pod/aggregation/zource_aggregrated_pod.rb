@@ -37,8 +37,7 @@ module CocoapodsZource
         # 1 add Zource subspec
         zource_subspec_name = "Zource"
         zource_subspec = @binary_podspec&.subspec(zource_subspec_name)
-        xcframework_name = "#{@binary_podspec.name}.xcframework"
-        zource_subspec&.vendored_frameworks = xcframework_name
+        zource_subspec&.vendored_frameworks = aggregated_vendored_frameworks
         # 2 set default subspec to Zource subspec
         @binary_podspec&.default_subspecs = zource_subspec_name
         # 3 depend Zource subspec if there is any other subspec
@@ -75,6 +74,21 @@ module CocoapodsZource
     end
 
     private
+
+    def aggregated_vendored_frameworks
+      verdored_frameworks = Array.new
+      Pod::Config.instance.zource_pods.each {
+        |zource_pod_name, zource_pod|
+        next if zource_pod.xcodeproject_target&.class != Xcodeproj::Project::Object::PBXNativeTarget
+        module_name = zource_pod_name
+        if !zource_pod.podspec&.module_name.nil?
+          module_name = zource_pod.podspec.module_name
+        end
+        vf = "#{module_name}.xcframework"
+        verdored_frameworks << vf
+      }
+      verdored_frameworks
+    end
 
     def copy_resources_for_zource_aggregrated_pod
       Pod::UI.section("==== Start copying resources ====") do
