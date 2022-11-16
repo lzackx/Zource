@@ -22,6 +22,13 @@ module CocoapodsZource
       UI.message "==== uploaded ====".green
     end
 
+    def upload_aggregation
+      UI.section "==== start uploading ====" do
+        Pod::Config.instance.zource_aggregated_pod.publish_binary
+      end
+      UI.message "==== uploaded ====".green
+    end
+
     # End Class
   end
 end

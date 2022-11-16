@@ -52,6 +52,17 @@ module Pod
     end
 
     # Zource Aggregation Pod
+
+    attr_accessor :zource_aggregated_pod
+
+    def zource_aggregated_pod
+      if @zource_aggregated_pod.nil?
+        zource_aggregated_pod_hash = JSON.parse(zource_aggregated_pod_json_path.read, { symbolize_names: true })
+        @zource_aggregated_pod = CocoapodsZource::ZourceAggregratedPod.from_hash(zource_aggregated_pod_hash)
+      end
+      @zource_aggregated_pod
+    end
+
     def zource_aggregated_podspec_path
       if @zource_aggregated_podspec_path.nil?
         @zource_aggregated_podspec_path = Pod::Config.instance.project_root.join("zource.aggregated.pod.podspec")
