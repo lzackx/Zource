@@ -5,10 +5,12 @@ module CocoapodsZource
     class ProjectConstructor
       attr_reader :zource_pod
       attr_reader :sandbox_directory
+      attr_reader :scheme
 
       def initialize(zource_pod)
         @zource_pod = zource_pod
         @sandbox_directory = @zource_pod.zource_pod_project_directory.join("Pods")
+        @scheme = Pod::Config.instance.podfile.target_definitions["Pods"].children.first.label
       end
 
       # xcodebuild [-project <projectname>] -scheme <schemeName> [-destination <destinationspecifier>]... [-configuration <configurationname>] [-arch <architecture>]... [-sdk [<sdkname>|<sdkpath>]] [-showBuildSettings [-json]] [-showdestinations] [<buildsetting>=<value>]... [<buildaction>]...
@@ -27,7 +29,7 @@ module CocoapodsZource
         command << "-project"
         command << "#{@sandbox_directory.join("Pods.xcodeproj")}"
         command << "-scheme"
-        command << "Pods-App"
+        command << "#{@scheme}"
         command << "-destination"
         command << "generic/platform=iOS"
         command << "-configuration"
@@ -54,7 +56,7 @@ module CocoapodsZource
         command << "-project"
         command << "#{@sandbox_directory.join("Pods.xcodeproj")}"
         command << "-scheme"
-        command << "Pods-App"
+        command << "#{@scheme}"
         command << "-destination"
         command << "generic/platform=iOS Simulator"
         command << "-configuration"
