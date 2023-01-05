@@ -17,6 +17,9 @@ module CocoapodsZource
           if !zource_pod.podspec&.module_name.nil?
             module_name = zource_pod.podspec.module_name
           end
+          if JSON.parse(@zource_pod.binary_podspec.dependencies.to_json).include?(module_name)
+            next
+          end
           ios_archived_path = @zource_pod.zource_pod_archived_directory.join("#{@zource_pod.podspec.name}.ios.xcarchive").join("Products").join("Library").join("Frameworks").join("#{module_name}.framework")
           ios_simulator_archived_path = @zource_pod.zource_pod_archived_directory.join("#{@zource_pod.podspec.name}.ios.simulator.xcarchive").join("Products").join("Library").join("Frameworks").join("#{module_name}.framework")
           if !ios_archived_path.exist? || !ios_simulator_archived_path.exist?

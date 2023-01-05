@@ -84,6 +84,7 @@ module CocoapodsZource
         if !zource_pod.podspec&.module_name.nil?
           module_name = zource_pod.podspec.module_name
         end
+        next if JSON.parse(@binary_podspec.dependencies.to_json).include?(module_name)
         vf = "#{module_name}.xcframework"
         verdored_frameworks << vf
       }
