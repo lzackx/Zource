@@ -14,6 +14,7 @@ module CocoapodsZource
     attr_reader :is_aggregation
     attr_reader :should_generate_project
     attr_reader :should_construct_project
+    attr_reader :should_arm64_simulator
     attr_reader :should_make_xcframework
     attr_reader :should_make_binary
 
@@ -21,12 +22,14 @@ module CocoapodsZource
                    is_aggregation,
                    should_generate_project = true,
                    should_construct_project = true,
+                   should_arm64_simulator = true,
                    should_make_xcframework = true,
                    should_make_binary = true)
       @configuration = configuration
       @is_aggregation = is_aggregation
       @should_generate_project = should_generate_project
       @should_construct_project = should_construct_project
+      @should_arm64_simulator = should_arm64_simulator
       @should_make_xcframework = should_make_xcframework
       @should_make_binary = should_make_binary
       Pod::Config.instance.zource_pods = Hash.new
@@ -74,11 +77,15 @@ module CocoapodsZource
         if !Pod::Config.instance.zource_aggregated_podspec_path.exist?
           abort("Please setup zource aggregrated pod podspec first, template: https://github.com/CocoaPods/pod-template/blob/master/NAME.podspec")
         end
+        Pod::Config.instance.zource_pods.values.each {
+          |zource_pod|
+          zource_pod.save_binary_podspec
+        }
         zource_aggregated_pod = CocoapodsZource::ZourceAggregratedPod.new
         zource_aggregated_pod.save_zource_aggregated_pod
         zource_aggregated_pod.save_binary_podspec
         if @should_construct_project
-          zource_aggregated_pod.construct_project
+          zource_aggregated_pod.construct_project(@should_arm64_simulator)
         end
         if @should_make_xcframework
           zource_aggregated_pod.compose_xcframeworks
@@ -99,7 +106,7 @@ module CocoapodsZource
               zource_pod.generate_project
             end
             if @should_construct_project
-              zource_pod.construct_project
+              zource_pod.construct_project(@should_arm64_simulator)
             end
             if @should_make_xcframework
               zource_pod.combine_xcframework

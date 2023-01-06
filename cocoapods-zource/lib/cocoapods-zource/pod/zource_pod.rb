@@ -93,10 +93,10 @@ module CocoapodsZource
       end
     end
 
-    def construct_project
+    def construct_project(should_arm64_simulator)
       Pod::UI.section "==== Start constructing #{@podspec.name} project ====" do
         constructor = ProjectConstructor.new(self)
-        constructor.construct
+        constructor.construct(should_arm64_simulator)
       end
     end
 
@@ -148,7 +148,7 @@ module CocoapodsZource
           # 1 add Zource subspec
           zource_subspec_name = "Zource"
           zource_subspec = @binary_podspec&.subspec(zource_subspec_name)
-          xcframework_name = "#{@binary_podspec.name}.xcframework"
+          xcframework_name = "#{@binary_podspec.module_name}.xcframework"
           zource_subspec&.vendored_frameworks = xcframework_name
           # 2 set default subspec to Zource subspec
           @binary_podspec&.default_subspecs = zource_subspec_name
@@ -168,8 +168,8 @@ module CocoapodsZource
           @binary_podspec&.source = source
           # 7. static_framework
           @binary_podspec&.static_framework = true
-          # 8. static_framework
-          @binary_podspec&.module_name = @binary_podspec.name if @binary_podspec&.module_name.nil?
+          # # 8. static_framework
+          # @binary_podspec&.module_name = @binary_podspec.name if @binary_podspec&.module_name.nil?
           # 9. license
           @binary_podspec&.license = "MIT"
           # 10. resource / resources / resource_bundles

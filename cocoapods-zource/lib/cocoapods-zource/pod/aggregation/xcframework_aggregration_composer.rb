@@ -1,4 +1,5 @@
 require "cocoapods"
+require "cocoapods-zource/pod/zource_pod.rb"
 
 module CocoapodsZource
   class ZourcePod
@@ -13,11 +14,13 @@ module CocoapodsZource
       def compose
         Pod::Config.instance.zource_pods.each {
           |zource_pod_name, zource_pod|
-          module_name = zource_pod_name
-          if !zource_pod.podspec&.module_name.nil?
-            module_name = zource_pod.podspec.module_name
+          # Not compose zource_pod if it is not a Xcodeproj::Project::Object::PBXNativeTarget
+          if zource_pod.xcodeproject_target.class != Xcodeproj::Project::Object::PBXNativeTarget
+            next
           end
-          if JSON.parse(@zource_pod.binary_podspec.dependencies.to_json).include?(module_name)
+          module_name = zource_pod.podspec&.module_name
+          # Aggregated pod do not contain its dependencies
+          if JSON.parse(@zource_pod.binary_podspec.dependencies.to_json).include?(zource_pod_name)
             next
           end
           ios_archived_path = @zource_pod.zource_pod_archived_directory.join("#{@zource_pod.podspec.name}.ios.xcarchive").join("Products").join("Library").join("Frameworks").join("#{module_name}.framework")
@@ -32,6 +35,7 @@ module CocoapodsZource
             next
           end
           compose_xcframeworks_of_archived(output, ios_archived_path, ios_simulator_archived_path)
+          dispatch_xcframeworks_of_zource_pod(zource_pod, output)
         }
       end
 
@@ -69,6 +73,28 @@ module CocoapodsZource
           abort("Constitute Xcframeworks exception:\n#{e}")
         end
       end
+
+      def dispatch_xcframeworks_of_zource_pod(zource_pod, output)
+        if !output.exist?
+          return
+        end
+        # Copy XCFramework to it's own directory
+        executable = "cp"
+        command = Array.new
+        command << "-r"
+        command << "#{output.to_s}"
+        command << "#{zource_pod.zource_pod_binary_directory}"
+        raise_on_failure = true
+        begin
+          Pod::Executable.execute_command(executable, command, raise_on_failure)
+        rescue Exception => e
+          abort("Constitute Xcframeworks exception:\n#{e}")
+        end
+        # Compress as product
+        zource_pod.compress_binary
+      end
+
+      # End
     end
   end
 end

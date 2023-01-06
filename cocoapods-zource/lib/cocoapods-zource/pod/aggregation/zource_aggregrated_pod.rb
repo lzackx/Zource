@@ -61,7 +61,8 @@ module CocoapodsZource
         # 9. license
         @binary_podspec&.license = "MIT"
         # 10. resource / resources / resource_bundles
-        copy_resources_for_zource_aggregrated_pod
+        # Aggregated pod will build xcframeworks that contain resources
+        # copy_resources_for_zource_aggregrated_pod
       end
       @binary_podspec
     end
@@ -80,10 +81,7 @@ module CocoapodsZource
       Pod::Config.instance.zource_pods.each {
         |zource_pod_name, zource_pod|
         next if zource_pod.xcodeproject_target&.class != Xcodeproj::Project::Object::PBXNativeTarget
-        module_name = zource_pod_name
-        if !zource_pod.podspec&.module_name.nil?
-          module_name = zource_pod.podspec.module_name
-        end
+        module_name = zource_pod.podspec.module_name
         next if JSON.parse(@binary_podspec.dependencies.to_json).include?(module_name)
         vf = "#{module_name}.xcframework"
         verdored_frameworks << vf

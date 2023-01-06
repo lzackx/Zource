@@ -22,6 +22,7 @@ module Pod
             ["--aggregation", "make a zource pod that aggregated with all pod in Pod.xcodeproj"],
             ["--not-generate-project", "Not generate project"],
             ["--not-construct-project", "Not construct project"],
+            ["--not-arm64-simulator", "Not construct arm64 simulator framework"],
             ["--not-make-xcframework", "Not make xcframework"],
             ["--not-make-binary", "Not compress binary"],
           ].concat(super)
@@ -37,6 +38,7 @@ module Pod
           @remake = argv.flag?("remake", false)
           @not_generate_project = argv.flag?("not-generate-project", false)
           @not_construct_project = argv.flag?("not-construct-project", false)
+          @not_arm64_simulator = argv.flag?("not-arm64-simulator", false)
           @not_make_xcframework = argv.flag?("not-make-xcframework", false)
           @not_make_binary = argv.flag?("not-make-binary", false)
           @unhandled_args = argv.remainder!
@@ -75,6 +77,7 @@ module Pod
                                              @aggregation,
                                              !@not_generate_project,
                                              !@not_construct_project,
+                                             !@not_arm64_simulator,
                                              !@not_make_xcframework,
                                              !@not_make_binary)
           maker.produce

@@ -14,9 +14,9 @@ module CocoapodsZource
       end
 
       # xcodebuild [-project <projectname>] -scheme <schemeName> [-destination <destinationspecifier>]... [-configuration <configurationname>] [-arch <architecture>]... [-sdk [<sdkname>|<sdkpath>]] [-showBuildSettings [-json]] [-showdestinations] [<buildsetting>=<value>]... [<buildaction>]...
-      def construct
+      def construct(should_arm64_simulator)
         construct_ios
-        construct_ios_simulator
+        construct_ios_simulator(should_arm64_simulator)
       end
 
       def construct_ios
@@ -46,7 +46,7 @@ module CocoapodsZource
         end
       end
 
-      def construct_ios_simulator
+      def construct_ios_simulator(should_arm64_simulator)
         executable = "xcodebuild"
         command = Array.new
         command << "clean"
@@ -65,6 +65,9 @@ module CocoapodsZource
         command << "#{@zource_pod.zource_pod_archived_directory.join("#{@zource_pod.podspec.name}.ios.simulator.xcarchive")}"
         command << "BUILD_LIBRARY_FOR_DISTRIBUTION=YES"
         command << "SKIP_INSTALL=NO"
+        if should_arm64_simulator == false
+          command << "EXCLUDED_ARCHS=arm64"
+        end
         raise_on_failure = true
         begin
           Pod::Executable.execute_command(executable, command, raise_on_failure)
