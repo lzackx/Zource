@@ -40,6 +40,16 @@ module Pod
           zp = CocoapodsZource::ZourcePod.from_hash(zource_pod_hash)
           @zource_pods[zource_pod_name] = zp
         }
+        pods_xcodeproj = Xcodeproj::Project.open(Pod::Config.instance.project_pods_root.join("Pods.xcodeproj"))
+        @zource_pods.values.each {
+          |zource_pod|
+          pods_xcodeproj.targets.each {
+            |target|
+            if target.name == zource_pod.podspec.name
+              zource_pod.xcodeproject_target = target
+            end
+          }
+        }
       end
       @zource_pods
     end

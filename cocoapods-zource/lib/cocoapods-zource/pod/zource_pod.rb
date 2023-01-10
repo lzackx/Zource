@@ -141,10 +141,10 @@ module CocoapodsZource
 
     def binary_podspec
       if @binary_podspec.nil?
+        podspec_hash = @podspec.to_hash
+        clear_podspec_attributes(podspec_hash)
+        @binary_podspec = Pod::Specification.from_hash(podspec_hash)
         if @xcodeproject_target.class == Xcodeproj::Project::Object::PBXNativeTarget
-          podspec_hash = @podspec.to_hash
-          clear_podspec_attributes(podspec_hash)
-          @binary_podspec = Pod::Specification.from_hash(podspec_hash)
           # 1 add Zource subspec
           zource_subspec_name = "Zource"
           zource_subspec = @binary_podspec&.subspec(zource_subspec_name)
@@ -182,8 +182,6 @@ module CocoapodsZource
           # end
           # spec&.module_name = module_name
           # fix_swiftinterface(spec, key, value)
-        else
-          @binary_podspec = @podspec
         end
       end
       @binary_podspec
@@ -212,6 +210,7 @@ module CocoapodsZource
       spec_hash.delete("preserve_paths")
       spec_hash.delete("pod_target_xcconfig")
       spec_hash.delete("prepare_command")
+      spec_hash.delete("license")
       # spec_hash.delete("ios")
       # spec_hash.delete("osx")
       # spec_hash.delete("tvos")
