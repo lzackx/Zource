@@ -1,6 +1,8 @@
 require "yaml"
 require "cocoapods"
 require "cocoapods-zource/pod/config+zource.rb"
+require "uri"
+require "net/http"
 
 module CocoapodsZource
   class Configuration
@@ -104,6 +106,15 @@ module CocoapodsZource
       end
     end
 
+    def current_uploaded_static_frameworks
+      if @current_uploaded_static_frameworks.nil?
+        uri = URI(binary_upload_url)
+        response = Net::HTTP.get_response(uri)
+        @current_uploaded_static_frameworks = JSON.parse(response.body)
+      end
+      @current_uploaded_static_frameworks
+    end
+
     #   private
     def respond_to_missing?(method, include_private = false)
       configuration.respond_to?(method) || super
@@ -118,5 +129,7 @@ module CocoapodsZource
         super
       end
     end
+
+    # End
   end
 end
