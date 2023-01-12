@@ -184,7 +184,7 @@ module CocoapodsZource
         end
         specification = Pod::Specification::from_file(podspec_path)
         abort("Specification not found: #{key}") if specification.nil?
-        zource_pod = ZourcePod.new(specification, meta)
+        zource_pod = ZourcePod.new(specification.ios.spec, meta)
         Pod::Config.instance.zource_pods[key] = zource_pod
       }
     end
@@ -206,7 +206,7 @@ module CocoapodsZource
           # Pod::Specification
           podspec_path = pod_source.specification_path(pod_name, meta[:version])
           specification = Pod::Specification::from_file(podspec_path)
-          zource_pod = ZourcePod.new(specification, meta)
+          zource_pod = ZourcePod.new(specification.ios.spec, meta)
           Pod::Config.instance.zource_pods[pod_name] = zource_pod
         }
       }
