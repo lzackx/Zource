@@ -149,19 +149,35 @@ module CocoapodsZource
           copy_resources_from(self, @podspec)
           # 2. vendored_frameworks and vendored_libraries
           copy_vendored_from(self, @podspec)
-          # 3 add Zource subspec
+          # 3. prefix_header_file
+          copy_prefix_header_file_from(self, @podspec)
+          # 4. add Zource subspec
           zource_subspec_name = "Zource"
           zource_subspec = @binary_podspec&.subspec(zource_subspec_name)
           xcframework_name = "#{@binary_podspec.module_name}.xcframework"
           zource_subspec&.vendored_frameworks = xcframework_name
-          # 4 set default subspec to Zource subspec
-          @binary_podspec&.default_subspecs = zource_subspec_name
-          # 5 depend Zource subspec if there is any other subspec
-          @binary_podspec&.subspecs.each {
-            |ss|
-            next if ss.name == zource_subspec.name
-            ss.dependency(zource_subspec.name)
-          }
+          # Subspecs
+          if @binary_podspec&.default_subspecs == :none
+            # 5.1 set default subspec to Zource subspec
+            @binary_podspec&.default_subspecs = zource_subspec_name
+            # 5.2 depend Zource subspec if there is any other subspec
+            @binary_podspec&.subspecs.each {
+              |ss|
+              next if ss.name == zource_subspec.name
+              ss.dependency(zource_subspec.name)
+            }
+          else
+            # 5.3 Let default subspecs depend on zource subspec
+            @binary_podspec&.subspecs.each {
+              |ss|
+              subspec_name = ss.name[@binary_podspec.name.length + 1, ss.name.length]
+              if @binary_podspec&.default_subspecs.include?(subspec_name)
+                next if ss == zource_subspec.name
+                ss.dependency(zource_subspec.name)
+              end
+            }
+          end
+
           # 6 order subspecs
           @binary_podspec&.subspecs.reverse!
           # 7. description
@@ -333,6 +349,28 @@ module CocoapodsZource
       specification.subspecs.each {
         |ss|
         copy_vendored_from(source_zource_pod, ss)
+      } unless specification.subspecs.empty?
+    end
+
+    def copy_prefix_header_file_from(source_zource_pod, specification)
+      # vendored_frameworks
+      if specification.to_hash.key?("prefix_header_file")
+        resources = specification.to_hash["prefix_header_file"]
+        if resources.is_a?(String)
+          resource_path = resources
+          copy_resource(source_zource_pod.podspec, resource_path)
+        elsif resources.is_a?(Array)
+          resources.each {
+            |resource|
+            resource_path = resource
+            copy_resource(source_zource_pod.podspec, resource_path)
+          }
+        end
+      end
+      # Recursively
+      specification.subspecs.each {
+        |ss|
+        copy_prefix_header_file_from(source_zource_pod, ss)
       } unless specification.subspecs.empty?
     end
 
