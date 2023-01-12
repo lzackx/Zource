@@ -174,6 +174,8 @@ module CocoapodsZource
           @binary_podspec&.license = "MIT"
           # 10. resource / resources / resource_bundles
           copy_resources_from(self)
+          # 11. vendored_frameworks and vendored_libraries
+          copy_vendored_from(self)
           # Fix Swift compiler bug about .swiftinterface file,
           # https://github.com/apple/swift/issues/43510, https://github.com/apple/swift/issues/56573
           # module_name = "Zource#{key}"
@@ -230,15 +232,15 @@ module CocoapodsZource
       end
       resource_absolute_path = resource_path_prefix.join(resource_path)
       zource_pod_binary_resource_path = @zource_pod_binary_directory.join(resource_path)
-      FileUtils.mkdir_p(zource_pod_binary_resource_path.to_s) if !zource_pod_binary_resource_path.exist?
+      FileUtils.mkdir_p(zource_pod_binary_resource_path.dirname) if !zource_pod_binary_resource_path.dirname.exist?
       # Copy
       Dir::glob(resource_absolute_path).each {
         |f|
         next if File.basename(f).eql?("*") || File.basename(f).eql?("**")
         f_relative_path = File.join(".", f[resource_path_prefix.to_s.length...f.length])
         zource_pod_resource_path = @zource_pod_binary_directory.join(f_relative_path)
-        if !zource_pod_resource_path.exist?
-          FileUtils.mkdir_p(zource_pod_resource_path)
+        if !zource_pod_resource_path.dirname.exist?
+          FileUtils.mkdir_p(zource_pod_resource_path.dirname)
         end
         FileUtils.cp_r(f, zource_pod_resource_path.dirname, verbose: true)
       }
@@ -290,6 +292,37 @@ module CocoapodsZource
             }
           end
         }
+      end
+    end
+
+    def copy_vendored_from(source_zource_pod)
+      # vendored_frameworks
+      if source_zource_pod.podspec.to_hash.key?("vendored_frameworks")
+        resources = source_zource_pod.podspec.to_hash["vendored_frameworks"]
+        if resources.is_a?(String)
+          resource_path = resources
+          copy_resource(source_zource_pod.podspec, resource_path)
+        elsif resources.is_a?(Array)
+          resources.each {
+            |resource|
+            resource_path = resource
+            copy_resource(source_zource_pod.podspec, resource_path)
+          }
+        end
+      end
+      # vendored_libraries
+      if source_zource_pod.podspec.to_hash.key?("vendored_libraries")
+        resources = source_zource_pod.podspec.to_hash["vendored_libraries"]
+        if resources.is_a?(String)
+          resource_path = resources
+          copy_resource(source_zource_pod.podspec, resource_path)
+        elsif resources.is_a?(Array)
+          resources.each {
+            |resource|
+            resource_path = resource
+            copy_resource(source_zource_pod.podspec, resource_path)
+          }
+        end
       end
     end
 
