@@ -145,37 +145,37 @@ module CocoapodsZource
         clear_podspec_attributes(podspec_hash)
         @binary_podspec = Pod::Specification.from_hash(podspec_hash)
         if @xcodeproject_target.class == Xcodeproj::Project::Object::PBXNativeTarget
-          # 1 add Zource subspec
+          # 1. resource / resources / resource_bundles
+          copy_resources_from(self, @podspec)
+          # 2. vendored_frameworks and vendored_libraries
+          copy_vendored_from(self, @podspec)
+          # 3 add Zource subspec
           zource_subspec_name = "Zource"
           zource_subspec = @binary_podspec&.subspec(zource_subspec_name)
           xcframework_name = "#{@binary_podspec.module_name}.xcframework"
           zource_subspec&.vendored_frameworks = xcframework_name
-          # 2 set default subspec to Zource subspec
+          # 4 set default subspec to Zource subspec
           @binary_podspec&.default_subspecs = zource_subspec_name
-          # 3 depend Zource subspec if there is any other subspec
+          # 5 depend Zource subspec if there is any other subspec
           @binary_podspec&.subspecs.each {
             |ss|
             next if ss.name == zource_subspec.name
             ss.dependency(zource_subspec.name)
           }
-          # 4 order subspecs
+          # 6 order subspecs
           @binary_podspec&.subspecs.reverse!
-          # 5. description
+          # 7. description
           @binary_podspec&.description = JSON.pretty_generate(@podspec.to_json)
-          # 6. source
+          # 8. source
           source = Hash.new
           source[:http] = CocoapodsZource::Configuration.configuration.binary_download_url(@binary_podspec.name, @binary_podspec.version)
           @binary_podspec&.source = source
-          # 7. static_framework
+          # 9. static_framework
           @binary_podspec&.static_framework = true
-          # # 8. static_framework
-          # @binary_podspec&.module_name = @binary_podspec.name if @binary_podspec&.module_name.nil?
-          # 9. license
+          # 10. license
           @binary_podspec&.license = "MIT"
-          # 10. resource / resources / resource_bundles
-          copy_resources_from(self)
-          # 11. vendored_frameworks and vendored_libraries
-          copy_vendored_from(self)
+          # # 11. static_framework
+          # @binary_podspec&.module_name = @binary_podspec.name if @binary_podspec&.module_name.nil?
           # Fix Swift compiler bug about .swiftinterface file,
           # https://github.com/apple/swift/issues/43510, https://github.com/apple/swift/issues/56573
           # module_name = "Zource#{key}"
@@ -246,15 +246,15 @@ module CocoapodsZource
       }
     end
 
-    def copy_resources_from(source_zource_pod)
+    def copy_resources_from(source_zource_pod, specification)
       # resource
-      if source_zource_pod.podspec.to_hash.key?("resource")
-        resource_path = source_zource_pod.podspec.to_hash["resource"]
+      if specification.to_hash.key?("resource")
+        resource_path = specification.to_hash["resource"]
         copy_resource(source_zource_pod.podspec, resource_path)
       end
       # resources
-      if source_zource_pod.podspec.to_hash.key?("resources")
-        resources = source_zource_pod.podspec.to_hash["resources"]
+      if specification.to_hash.key?("resources")
+        resources = specification.to_hash["resources"]
         if resources.is_a?(String)
           resource_path = resources
           copy_resource(source_zource_pod.podspec, resource_path)
@@ -267,8 +267,8 @@ module CocoapodsZource
         end
       end
       # resource_bundle
-      if source_zource_pod.podspec.to_hash.key?("resource_bundle")
-        resource_bundle = source_zource_pod.podspec.to_hash["resource_bundle"]
+      if specification.to_hash.key?("resource_bundle")
+        resource_bundle = specification.to_hash["resource_bundle"]
         resource_bundle.each {
           |key, value|
           resource_path = value
@@ -276,8 +276,8 @@ module CocoapodsZource
         }
       end
       # resource_bundles
-      if source_zource_pod.podspec.to_hash.key?("resource_bundles")
-        resource_bundles = source_zource_pod.podspec.to_hash["resource_bundles"]
+      if specification.to_hash.key?("resource_bundles")
+        resource_bundles = specification.to_hash["resource_bundles"]
         resource_bundles.each {
           |key, value|
           if value.is_a?(String)
@@ -293,12 +293,17 @@ module CocoapodsZource
           end
         }
       end
+      # Recursively
+      specification.subspecs.each {
+        |ss|
+        copy_resources_from(source_zource_pod, ss)
+      } unless specification.subspecs.empty?
     end
 
-    def copy_vendored_from(source_zource_pod)
+    def copy_vendored_from(source_zource_pod, specification)
       # vendored_frameworks
-      if source_zource_pod.podspec.to_hash.key?("vendored_frameworks")
-        resources = source_zource_pod.podspec.to_hash["vendored_frameworks"]
+      if specification.to_hash.key?("vendored_frameworks")
+        resources = specification.to_hash["vendored_frameworks"]
         if resources.is_a?(String)
           resource_path = resources
           copy_resource(source_zource_pod.podspec, resource_path)
@@ -311,8 +316,8 @@ module CocoapodsZource
         end
       end
       # vendored_libraries
-      if source_zource_pod.podspec.to_hash.key?("vendored_libraries")
-        resources = source_zource_pod.podspec.to_hash["vendored_libraries"]
+      if specification.to_hash.key?("vendored_libraries")
+        resources = specification.to_hash["vendored_libraries"]
         if resources.is_a?(String)
           resource_path = resources
           copy_resource(source_zource_pod.podspec, resource_path)
@@ -324,6 +329,11 @@ module CocoapodsZource
           }
         end
       end
+      # Recursively
+      specification.subspecs.each {
+        |ss|
+        copy_vendored_from(source_zource_pod, ss)
+      } unless specification.subspecs.empty?
     end
 
     # End
