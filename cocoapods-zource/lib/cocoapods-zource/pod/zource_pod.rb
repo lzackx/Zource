@@ -142,6 +142,7 @@ module CocoapodsZource
     def binary_podspec
       if @binary_podspec.nil?
         podspec_hash = @podspec.to_hash
+        # Have to clear or the aggregated target (etc RN) will integrate redundant codes to project
         clear_podspec_attributes(podspec_hash)
         @binary_podspec = Pod::Specification.from_hash(podspec_hash)
         if @xcodeproject_target.class == Xcodeproj::Project::Object::PBXNativeTarget

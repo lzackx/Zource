@@ -94,21 +94,19 @@ module CocoapodsZource
                   final_dependencies << dependency
                 }
                 # handle external dependency
+                current_uploaded_static_frameworks = CocoapodsZource::Configuration.configuration.current_uploaded_static_frameworks
                 final_dependencies.each {
                   |dependency|
-                  if dependency.external?
-                    # not use local dependency 
+                  # use source list if dependency's static xcframework exists
+                  if current_uploaded_static_frameworks.keys.include?(dependency.root_name)
+                    dependency.podspec_repo = binary_source
+                    dependency.external_source = nil
+                  elsif dependency.external?
+                    # not use local dependency
                     if dependency.external_source.key?(:path) || dependency.external_source.key?(:podspec)
                       # use source as specified
                       dependency.podspec_repo = nil
                       dependency.external_source = nil
-                    else
-                      # use source list if dependency's static xcframework exists
-                      current_uploaded_static_frameworks = CocoapodsZource::Configuration.configuration.current_uploaded_static_frameworks
-                      if current_uploaded_static_frameworks.keys.include?(dependency.root_name)
-                        dependency.podspec_repo = nil
-                        dependency.external_source = nil
-                      end
                     end
                   end
                 }
@@ -117,7 +115,7 @@ module CocoapodsZource
                   |fd|
                   requirements = Array.new
                   if !fd.podspec_repo.nil?
-                    requirements << fd.podspec_repo
+                    requirements << { :source => fd.podspec_repo }
                   elsif fd.external?
                     requirements << fd.external_source
                   elsif fd.requirement != Pod::Requirement.default
