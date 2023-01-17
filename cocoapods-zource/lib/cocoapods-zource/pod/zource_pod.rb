@@ -157,29 +157,9 @@ module CocoapodsZource
           zource_subspec = @binary_podspec&.subspec(zource_subspec_name)
           xcframework_name = "#{@binary_podspec.module_name}.xcframework"
           zource_subspec&.vendored_frameworks = xcframework_name
-          # Subspecs
-          if @binary_podspec&.default_subspecs == :none
-            # 5.1 set default subspec to Zource subspec
-            @binary_podspec&.default_subspecs = zource_subspec_name
-            # 5.2 depend Zource subspec if there is any other subspec
-            @binary_podspec&.subspecs.each {
-              |ss|
-              next if ss.name == zource_subspec.name
-              ss.dependency(zource_subspec.name)
-            }
-          else
-            # 5.3 Let default subspecs depend on zource subspec
-            @binary_podspec&.subspecs.each {
-              |ss|
-              subspec_name = ss.name[@binary_podspec.name.length + 1, ss.name.length]
-              if @binary_podspec&.default_subspecs.include?(subspec_name)
-                next if ss == zource_subspec.name
-                ss.dependency(zource_subspec.name)
-              end
-            }
-          end
-
-          # 6 order subspecs
+          # 5. Subspecs
+          add_zource_subspec_dependency_to(@binary_podspec, zource_subspec)
+          # 6. order subspecs
           @binary_podspec&.subspecs.reverse!
           # 7. description
           @binary_podspec&.description = JSON.pretty_generate(@podspec.to_json)
@@ -217,7 +197,10 @@ module CocoapodsZource
     end
 
     def clear_podspec_attributes(spec_hash)
-      spec_hash.delete("source_files")
+      # If there is a .a file, podspec need headers to build with it
+      if !spec_hash.key?("vendored_libraries") && !spec_hash.key?("vendored_library")
+        spec_hash.delete("source_files")
+      end
       spec_hash.delete("script_phases")
       spec_hash.delete("compiler_flags")
       spec_hash.delete("exclude_files")
@@ -373,6 +356,15 @@ module CocoapodsZource
         |ss|
         copy_prefix_header_file_from(source_zource_pod, ss)
       } unless specification.subspecs.empty?
+    end
+
+    def add_zource_subspec_dependency_to(specification, zource_subspec)
+      specification&.subspecs.each {
+        |ss|
+        next if ss.name == zource_subspec.name
+        ss.dependency(zource_subspec.name)
+        add_zource_subspec_dependency_to(ss, zource_subspec)
+      }
     end
 
     # End
